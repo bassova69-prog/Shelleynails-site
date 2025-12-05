@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, PiggyBank, Truck, LogOut, Menu, X, ExternalLink, Sparkles, Gift } from 'lucide-react';
+import { LayoutDashboard, Users, PiggyBank, Truck, LogOut, Menu, X, ExternalLink, Sparkles, Gift, Lock } from 'lucide-react';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -10,6 +10,29 @@ interface AdminLayoutProps {
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
+
+  // --- AUTHENTIFICATION ---
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+      // Vérifie si l'utilisateur est déjà connecté dans cette session
+      const auth = sessionStorage.getItem('shelleynails_admin_auth');
+      if (auth === 'true') setIsAuthenticated(true);
+  }, []);
+
+  const handleLogin = (e: React.FormEvent) => {
+      e.preventDefault();
+      if (pin === '1234') {
+          setIsAuthenticated(true);
+          sessionStorage.setItem('shelleynails_admin_auth', 'true');
+          setError(false);
+      } else {
+          setError(true);
+          setPin('');
+      }
+  };
 
   const navItems = [
     { path: '/admin/dashboard', icon: LayoutDashboard, label: 'Tableau de bord' },
@@ -21,6 +44,56 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  // --- ECRAN DE VERROUILLAGE ---
+  if (!isAuthenticated) {
+      return (
+        <div className="min-h-screen bg-[#FAFAF9] flex items-center justify-center p-4 font-sans text-stone-800">
+             <div className="bg-white p-8 rounded-[2rem] shadow-2xl border border-[#D4A373] max-w-sm w-full text-center relative overflow-hidden animate-in fade-in zoom-in duration-500">
+                <div className="absolute top-0 left-0 w-full h-1 bg-[#D4A373]"></div>
+                
+                <div className="w-20 h-20 bg-stone-900 rounded-full flex items-center justify-center mx-auto mb-6 text-[#D4A373] shadow-lg border border-[#D4A373]">
+                    <Lock size={32} />
+                </div>
+                
+                <h1 className="text-3xl font-serif font-bold text-stone-900 mb-1">Espace Pro</h1>
+                <p className="text-stone-500 text-sm mb-8 font-medium">Veuillez vous identifier</p>
+                
+                <form onSubmit={handleLogin} className="space-y-6">
+                    <div className="relative">
+                        <input 
+                            type="password" 
+                            value={pin}
+                            onChange={(e) => { setPin(e.target.value); setError(false); }}
+                            className="w-full text-center text-3xl tracking-[0.5em] p-4 rounded-xl border border-[#D4A373] focus:ring-2 focus:ring-stone-900 outline-none bg-stone-50 font-serif text-stone-900 placeholder-stone-300 transition-all"
+                            placeholder="••••"
+                            maxLength={4}
+                            autoFocus
+                        />
+                    </div>
+                    
+                    {error && (
+                        <div className="text-red-500 text-xs font-bold animate-pulse bg-red-50 py-2 rounded-lg border border-red-100">
+                            Code d'accès incorrect
+                        </div>
+                    )}
+                    
+                    <button 
+                        type="submit" 
+                        className="w-full py-4 bg-stone-900 text-[#D4A373] font-bold rounded-xl hover:bg-black transition-all shadow-lg border border-[#D4A373] flex items-center justify-center gap-2 uppercase tracking-widest text-xs active:scale-[0.98]"
+                    >
+                        <Sparkles size={16} /> Déverrouiller
+                    </button>
+                </form>
+                
+                <Link to="/" className="inline-block mt-8 text-[10px] text-stone-400 hover:text-stone-900 font-bold uppercase tracking-wider border-b border-transparent hover:border-stone-900 pb-0.5 transition-all">
+                    Retour au site public
+                </Link>
+             </div>
+        </div>
+      );
+  }
+
+  // --- LAYOUT ADMIN CONNECTÉ ---
   return (
     <div className="min-h-screen bg-[#FAFAF9] flex font-sans text-stone-800">
       {/* Mobile Sidebar Overlay */}
@@ -56,13 +129,13 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 key={item.path}
                 to={item.path}
                 onClick={() => setIsSidebarOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group ${
+                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 group border border-transparent ${
                   isActive(item.path)
-                    ? 'bg-stone-900 text-white shadow-lg shadow-stone-200'
-                    : 'text-stone-500 hover:bg-stone-50 hover:text-stone-900'
+                    ? 'bg-stone-900 text-white shadow-lg shadow-stone-200 border-[#D4A373]'
+                    : 'text-stone-500 hover:bg-stone-50 hover:text-stone-900 hover:border-stone-200'
                 }`}
               >
-                <item.icon size={18} className={isActive(item.path) ? "text-stone-200" : "group-hover:text-stone-900 transition-colors"} />
+                <item.icon size={18} className={isActive(item.path) ? "text-[#D4A373]" : "group-hover:text-[#D4A373] transition-colors"} />
                 <span className="font-medium text-sm tracking-wide">{item.label}</span>
               </Link>
             ))}
@@ -72,22 +145,32 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             </div>
             <Link
               to="/"
-              className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-stone-500 hover:bg-stone-50 hover:text-stone-900 transition-all group"
+              className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-stone-500 hover:bg-stone-50 hover:text-stone-900 transition-all group border border-transparent hover:border-stone-200"
             >
-              <ExternalLink size={18} className="group-hover:text-stone-900 transition-colors" />
+              <ExternalLink size={18} className="group-hover:text-[#D4A373] transition-colors" />
               <span className="font-medium text-sm tracking-wide">Voir le site public</span>
             </Link>
           </nav>
 
           <div className="p-4 border-t border-stone-100">
             <div className="flex items-center gap-3 px-4 py-3 mb-2">
-                <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-500">
-                    <Sparkles size={14} />
+                <div className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center text-stone-500 border border-[#D4A373]">
+                    <Sparkles size={14} className="text-[#D4A373] fill-[#D4A373]" />
                 </div>
                 <div>
                     <p className="text-sm font-bold text-stone-900">Shelley</p>
                     <p className="text-xs text-stone-400">Admin</p>
                 </div>
+                <button 
+                    onClick={() => {
+                        sessionStorage.removeItem('shelleynails_admin_auth');
+                        setIsAuthenticated(false);
+                    }}
+                    className="ml-auto p-2 text-stone-400 hover:text-red-500 transition-colors"
+                    title="Déconnexion"
+                >
+                    <LogOut size={16} />
+                </button>
             </div>
           </div>
         </div>
