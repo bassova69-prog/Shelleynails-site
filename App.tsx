@@ -13,6 +13,7 @@ import { Clients } from './pages/admin/Clients';
 import { Accounting } from './pages/admin/Accounting';
 import { Suppliers } from './pages/admin/Suppliers';
 import { AdminGiftCards } from './pages/admin/GiftCards';
+import { Settings } from './pages/admin/Settings';
 
 const App: React.FC = () => {
   return (
@@ -33,6 +34,7 @@ const App: React.FC = () => {
         <Route path="/admin/accounting" element={<AdminLayout><Accounting /></AdminLayout>} />
         <Route path="/admin/suppliers" element={<AdminLayout><Suppliers /></AdminLayout>} />
         <Route path="/admin/gift-cards" element={<AdminLayout><AdminGiftCards /></AdminLayout>} />
+        <Route path="/admin/settings" element={<AdminLayout><Settings /></AdminLayout>} />
       </Routes>
     </HashRouter>
   );

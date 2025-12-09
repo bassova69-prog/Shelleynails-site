@@ -16,11 +16,9 @@ export const Dashboard: React.FC = () => {
   if (!data) return null;
 
   // --- CALCULS KPI ---
-
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
 
-  // 1. Chiffre d'affaires MENSUEL
   const monthlyRevenue = data.transactions
     .filter(t => {
         const d = new Date(t.date);
@@ -30,7 +28,6 @@ export const Dashboard: React.FC = () => {
 
   const totalRevenue = data.transactions.reduce((acc, t) => acc + t.amount, 0);
 
-  // 2. Charges du mois (Commandes Fournisseurs)
   const monthlyExpenses = data.orders
     .filter(o => {
         const d = new Date(o.date);
@@ -38,10 +35,8 @@ export const Dashboard: React.FC = () => {
     })
     .reduce((acc, o) => acc + (o.totalAmount || 0), 0);
 
-  // 3. Résultat Mensuel
   const monthlyResult = monthlyRevenue - monthlyExpenses;
 
-  // 4. Top Prestations
   const performanceByService: Record<string, number> = {};
   data.transactions
     .filter(t => t.category === 'Prestation')
@@ -54,7 +49,6 @@ export const Dashboard: React.FC = () => {
     .slice(0, 4)
     .map(([name, value]) => ({ name, value }));
 
-  // 5. Top Formations (REMPLACEMENT DE TOP PRODUITS)
   const performanceByTraining: Record<string, number> = {};
   data.transactions
     .filter(t => t.category === 'Formation')
@@ -67,15 +61,12 @@ export const Dashboard: React.FC = () => {
     .slice(0, 4)
     .map(([name, value]) => ({ name, value }));
 
-    // 6. Répartition Revenue
   const revenueByCategory = [
       { name: 'Prestations', value: data.transactions.filter(t => t.category === 'Prestation').reduce((acc, t) => acc + t.amount, 0), color: '#1c1917' },
       { name: 'Formations', value: data.transactions.filter(t => t.category === 'Formation').reduce((acc, t) => acc + t.amount, 0), color: '#D4A373' },
       { name: 'Ventes', value: data.transactions.filter(t => t.category === 'Vente').reduce((acc, t) => acc + t.amount, 0), color: '#A8A29E' },
   ].filter(item => item.value > 0);
 
-
-  // --- GRAPHIQUE EVOLUTION ANNUELLE ---
   const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
   
   const chartData = months.map((monthName, index) => {
@@ -90,44 +81,52 @@ export const Dashboard: React.FC = () => {
   });
 
   return (
-    <div className="flex flex-col gap-8 pb-10 h-[calc(100vh-100px)]">
+    <div className="flex flex-col gap-8 pb-10">
       
       {/* MAIN DASHBOARD */}
-      <div className="flex-1 space-y-8 overflow-y-auto pr-2">
+      <div className="space-y-8">
         <div>
-            <h1 className="text-3xl font-serif font-bold text-stone-900">Tableau de bord</h1>
-            <p className="text-stone-500 mt-1">Pilotage de l'activité sur l'année.</p>
+            <h1 
+                className="text-5xl font-knife tracking-wide"
+                style={{
+                    background: 'linear-gradient(to bottom, #F5F5F4 0%, #A8A29E 45%, #57534E 50%, #A8A29E 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.4))',
+                    WebkitTextStroke: '1px #44403C',
+                }}
+            >
+                Tableau de bord
+            </h1>
+            <p className="text-stone-600 mt-2 font-medium">Pilotage de l'activité sur l'année.</p>
         </div>
 
-        {/* KPI Cards Row (Refonte) */}
+        {/* KPI Cards Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard 
                 title="CA Mensuel" 
                 value={`${monthlyRevenue.toFixed(0)} €`} 
                 icon={Euro} 
                 trend="Ce mois-ci"
-                color="gold"
             />
             <StatCard 
                 title="Charges du mois" 
                 value={`${monthlyExpenses.toFixed(0)} €`} 
                 icon={TrendingDown} 
                 subtext="Fournisseurs"
-                color="gold"
             />
             <StatCard 
                 title="Résultat Mensuel" 
                 value={`${monthlyResult.toFixed(0)} €`} 
                 icon={TrendingUp} 
                 trend="Bénéfice estimé"
-                color="gold"
             />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* Main Chart: Evolution Annuelle */}
-            <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-[#D4A373]">
+            {/* Main Chart */}
+            <div className="lg:col-span-2 bg-white/40 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-white/40">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-lg font-bold text-stone-800 font-serif">Évolution du Chiffre d'Affaires</h2>
                     <div className="flex gap-2">
@@ -138,7 +137,7 @@ export const Dashboard: React.FC = () => {
                                 className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors border ${
                                     selectedYear === year 
                                     ? 'bg-[#D4A373] text-white border-[#D4A373]' 
-                                    : 'bg-white text-[#D4A373] border-[#D4A373] hover:bg-[#FAEDCD]'
+                                    : 'bg-white/30 text-[#D4A373] border-[#D4A373]/30 hover:bg-[#FAEDCD]/50'
                                 }`}
                             >
                                 {year}
@@ -149,11 +148,11 @@ export const Dashboard: React.FC = () => {
                 <div className="h-72">
                     <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f4" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#D4A373', fontSize: 12}} />
-                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#D4A373', fontSize: 12}} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#d6d3d1" strokeOpacity={0.5} />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#78716c', fontSize: 12}} />
+                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#78716c', fontSize: 12}} />
                         <Tooltip 
-                        contentStyle={{ borderRadius: '12px', border: '1px solid #D4A373', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', padding: '12px' }}
+                        contentStyle={{ borderRadius: '12px', border: '1px solid #D4A373', background: 'rgba(255, 255, 255, 0.9)', padding: '12px' }}
                         cursor={{fill: '#FAEDCD', opacity: 0.3}}
                         formatter={(value: number) => [`${value} €`, 'CA']}
                         />
@@ -163,9 +162,9 @@ export const Dashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Revenue Distribution Donut */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#D4A373] flex flex-col">
-                <h2 className="text-lg font-bold text-stone-800 mb-6 font-serif">Sources de Revenus (Global)</h2>
+            {/* Revenue Distribution */}
+            <div className="bg-white/40 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-white/40 flex flex-col">
+                <h2 className="text-lg font-bold text-stone-800 mb-6 font-serif">Sources de Revenus</h2>
                 <div className="flex-1 min-h-[200px] relative">
                     <ResponsiveContainer width="100%" height="100%">
                         <RePieChart>
@@ -179,10 +178,10 @@ export const Dashboard: React.FC = () => {
                                 dataKey="value"
                             >
                                 {revenueByCategory.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} stroke="#D4A373" strokeWidth={1} />
+                                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                                 ))}
                             </Pie>
-                            <Tooltip contentStyle={{borderRadius: '8px', border:'1px solid #D4A373'}} />
+                            <Tooltip contentStyle={{borderRadius: '8px', border:'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', background: 'rgba(255, 255, 255, 0.9)'}} />
                         </RePieChart>
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex items-center justify-center flex-col pointer-events-none">
@@ -208,24 +207,24 @@ export const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Top Services */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#D4A373]">
+            <div className="bg-white/40 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-white/40">
                 <div className="flex items-center gap-2 mb-6">
-                        <div className="p-2 bg-[#FAEDCD] text-[#D4A373] rounded-lg">
+                        <div className="p-2 bg-[#FAEDCD] text-[#D4A373] rounded-lg shadow-sm">
                             <Award size={20} className="fill-[#D4A373]" />
                         </div>
-                        <h2 className="text-lg font-bold text-stone-800 font-serif">Top Prestations Rentables</h2>
+                        <h2 className="text-lg font-bold text-stone-800 font-serif">Top Prestations</h2>
                 </div>
                 <div className="space-y-4">
                     {topServices.length > 0 ? topServices.map((service, idx) => (
                         <div key={idx} className="relative">
                             <div className="flex justify-between items-center mb-1 relative z-10">
                                 <span className="font-bold text-sm text-stone-800 flex items-center gap-2">
-                                    <span className="w-5 h-5 rounded-full bg-[#FAEDCD] flex items-center justify-center text-[10px] text-[#D4A373] font-bold border border-[#D4A373]">{idx + 1}</span>
+                                    <span className="w-5 h-5 rounded-full bg-white/50 flex items-center justify-center text-[10px] text-[#D4A373] font-bold border border-[#D4A373]">{idx + 1}</span>
                                     {service.name}
                                 </span>
                                 <span className="font-mono text-sm font-bold text-stone-900">{service.value} €</span>
                             </div>
-                            <div className="h-2 w-full bg-[#FAEDCD] rounded-full overflow-hidden">
+                            <div className="h-2 w-full bg-white/30 rounded-full overflow-hidden">
                                 <div 
                                     style={{width: `${(service.value / topServices[0].value) * 100}%`}} 
                                     className="h-full bg-[#D4A373] rounded-full"
@@ -239,26 +238,26 @@ export const Dashboard: React.FC = () => {
             </div>
 
             {/* Top Formations */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#D4A373]">
+            <div className="bg-white/40 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-white/40">
                 <div className="flex items-center gap-2 mb-6">
-                        <div className="p-2 bg-[#FAEDCD] text-[#D4A373] rounded-lg">
+                        <div className="p-2 bg-[#FAEDCD] text-[#D4A373] rounded-lg shadow-sm">
                             <GraduationCap size={20} className="fill-[#D4A373]" />
                         </div>
                         <h2 className="text-lg font-bold text-stone-800 font-serif">Top Formations</h2>
                 </div>
                 <div className="space-y-4">
                     {topTrainings.length > 0 ? topTrainings.map((training, idx) => (
-                        <div key={idx} className="group flex items-center justify-between p-3 rounded-xl hover:bg-[#FAEDCD]/30 transition-colors border border-transparent hover:border-[#D4A373]/30">
+                        <div key={idx} className="group flex items-center justify-between p-3 rounded-2xl hover:bg-white/40 transition-colors border border-transparent hover:border-white/30">
                                 <div className="flex items-center gap-3">
                                     <span className="text-xl font-bold text-[#D4A373]">#{idx + 1}</span>
                                     <span className="font-medium text-sm text-stone-700">{training.name}</span>
                                 </div>
-                                <span className="font-bold text-[#D4A373] bg-white border border-[#D4A373] px-2 py-1 rounded shadow-sm">
+                                <span className="font-bold text-[#D4A373] bg-white/50 border border-[#D4A373]/30 px-2 py-1 rounded shadow-sm">
                                     {training.value} €
                                 </span>
                         </div>
                     )) : (
-                            <div className="flex flex-col items-center justify-center h-32 text-stone-400 text-sm border-2 border-dashed border-[#D4A373]/30 rounded-xl">
+                            <div className="flex flex-col items-center justify-center h-32 text-stone-400 text-sm border-2 border-dashed border-[#D4A373]/30 rounded-xl bg-white/20">
                                 <GraduationCap size={24} className="mb-2 opacity-50 text-[#D4A373]" />
                                 Aucune formation vendue
                             </div>
@@ -273,13 +272,13 @@ export const Dashboard: React.FC = () => {
 
 const StatCard = ({ title, value, icon: Icon, trend, subtext }: any) => {
     return (
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-[#D4A373] flex flex-col justify-between h-32 relative overflow-hidden group hover:shadow-md transition-shadow">
+        <div className="bg-white/40 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-white/40 flex flex-col justify-between h-32 relative overflow-hidden group hover:scale-[1.02] transition-all duration-300">
             <div className="flex items-start justify-between z-10">
             <div>
-                <p className="text-xs font-semibold text-[#D4A373] uppercase tracking-wider mb-2">{title}</p>
+                <p className="text-xs font-bold text-[#D4A373] uppercase tracking-wider mb-2">{title}</p>
                 <h3 className="text-3xl font-bold text-stone-900 font-serif">{value}</h3>
             </div>
-            <div className="p-2 rounded-lg transition-colors bg-[#FAEDCD] text-[#D4A373]">
+            <div className="p-2 rounded-lg bg-[#FAEDCD] text-[#D4A373] shadow-sm">
                 <Icon size={20} className="fill-[#D4A373]" />
             </div>
             </div>
@@ -290,7 +289,7 @@ const StatCard = ({ title, value, icon: Icon, trend, subtext }: any) => {
                     {subtext && <span className="text-stone-400">{subtext}</span>}
                 </div>
             )}
-            <div className="absolute -bottom-4 -right-4 text-[#D4A373] opacity-10 transform rotate-12 group-hover:scale-110 transition-transform duration-500">
+            <div className="absolute -bottom-4 -right-4 text-[#D4A373] opacity-5 transform rotate-12 group-hover:scale-110 transition-transform duration-500">
                 <Icon size={100} className="fill-[#D4A373]" />
             </div>
         </div>

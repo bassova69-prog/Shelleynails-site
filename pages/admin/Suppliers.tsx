@@ -1,720 +1,536 @@
 
+
 import React, { useState, useEffect } from 'react';
-import { getData, addSupplier, addOrder, updateOrder, updateInventoryItem } from '../../services/storage';
+import { getData, addSupplier, updateSupplier, deleteSupplier, addOrder, updateOrder, updateInventoryItem, deleteOrder } from '../../services/storage';
 import { Supplier, Order, OrderItem, InventoryItem } from '../../types';
-import { Plus, ExternalLink, Package, ShoppingBag, Search, Check, Send, ShoppingCart, Truck, Trash2, Minus, Calendar, Archive, LayoutList, AlertTriangle, PenLine, Save } from 'lucide-react';
+import { Plus, ExternalLink, Package, ShoppingBag, Search, Check, Send, ShoppingCart, Truck, Trash2, Minus, Calendar, Archive, LayoutList, AlertTriangle, PenLine, Save, X, Mail, Globe } from 'lucide-react';
 
 export const Suppliers: React.FC = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [activeTab, setActiveTab] = useState<'order' | 'tracking' | 'stock' | 'directory'>('order');
+  const [activeTab, setActiveTab] = useState<'order' | 'tracking' | 'stock' | 'directory'>('directory'); // Default to directory to show list immediately
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // State pour la commande
-  // Map: SupplierId -> { ProductName: Quantity }
   const [cart, setCart] = useState<Record<string, Record<string, number>>>({});
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
-
-  // State pour l'édition de stock
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editQty, setEditQty] = useState<number>(0);
   const [editThreshold, setEditThreshold] = useState<number>(0);
-
-  // State pour Ajout Fournisseur
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Supplier Form State
+  const [editingSupplierId, setEditingSupplierId] = useState<string | null>(null);
   const [newName, setNewName] = useState('');
   const [newWebsite, setNewWebsite] = useState('');
+  const [newEmail, setNewEmail] = useState('');
   const [newProducts, setNewProducts] = useState('');
   const [newNotes, setNewNotes] = useState('');
-
-  // State pour filtres Stock
+  
   const [stockSupplierFilter, setStockSupplierFilter] = useState<string>('all');
 
   useEffect(() => {
+    refreshData();
+  }, []);
+
+  const refreshData = () => {
     const data = getData();
     setSuppliers(data.suppliers);
     setOrders(data.orders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setInventory(data.inventory || []);
-  }, []);
+  };
 
   const updateQuantity = (supplierId: string, product: string, delta: number) => {
     setCart(prev => {
       const supplierCart = prev[supplierId] || {};
-      const currentQty = supplierCart[product] || 0;
-      const newQty = Math.max(0, currentQty + delta);
-
+      const newQty = Math.max(0, (supplierCart[product] || 0) + delta);
       const newSupplierCart = { ...supplierCart };
-      if (newQty === 0) {
-        delete newSupplierCart[product];
-      } else {
-        newSupplierCart[product] = newQty;
-      }
-
-      // Clean up empty supplier carts
-      if (Object.keys(newSupplierCart).length === 0) {
-        const { [supplierId]: _, ...rest } = prev;
-        return rest;
-      }
-
+      if (newQty === 0) delete newSupplierCart[product];
+      else newSupplierCart[product] = newQty;
+      if (Object.keys(newSupplierCart).length === 0) { const { [supplierId]: _, ...rest } = prev; return rest; }
       return { ...prev, [supplierId]: newSupplierCart };
     });
   };
-
-  const getQuantity = (supplierId: string, product: string): number => {
-    return cart[supplierId]?.[product] || 0;
-  };
-
-  const clearCart = () => setCart({});
-
-  const handleAddSupplier = (e: React.FormEvent) => {
+  const getQuantity = (supplierId: string, product: string) => cart[supplierId]?.[product] || 0;
+  
+  const handleSaveSupplier = (e: React.FormEvent) => {
     e.preventDefault();
-    const newSup: Supplier = {
-      id: Date.now().toString(),
-      name: newName,
-      website: newWebsite,
-      products: newProducts.split(',').map(p => p.trim()),
-      notes: newNotes
-    };
-    const data = addSupplier(newSup);
-    setSuppliers(data.suppliers);
-    setIsAddModalOpen(false);
-    resetForm();
-  };
+    const productList = newProducts.split(',').map(p => p.trim()).filter(p => p !== '');
 
-  const resetForm = () => {
-    setNewName('');
-    setNewWebsite('');
-    setNewProducts('');
-    setNewNotes('');
-  };
-
-  const handleSendOrders = () => {
-    // Créer une commande par fournisseur présent dans le panier
-    const newOrders: Order[] = [];
+    if (editingSupplierId) {
+        // Update
+        const existing = suppliers.find(s => s.id === editingSupplierId);
+        if (existing) {
+            const updatedSup: Supplier = {
+                ...existing,
+                name: newName,
+                website: newWebsite,
+                email: newEmail,
+                products: productList,
+                notes: newNotes
+            };
+            updateSupplier(updatedSup);
+        }
+    } else {
+        // Create
+        const newSup: Supplier = { 
+            id: Date.now().toString(), 
+            name: newName, 
+            website: newWebsite, 
+            email: newEmail,
+            products: productList, 
+            notes: newNotes 
+        };
+        addSupplier(newSup); 
+    }
     
-    Object.keys(cart).forEach(supplierId => {
-        const supplier = suppliers.find(s => s.id === supplierId);
-        if (!supplier) return;
-        
-        const items: OrderItem[] = Object.entries(cart[supplierId]).map(([name, quantity]) => ({
-            name,
-            quantity: quantity as number
-        }));
+    refreshData();
+    closeModal();
+  };
 
-        const order: Order = {
-            id: Date.now().toString() + Math.random().toString(),
-            supplierId: supplier.id,
+  const handleEditSupplier = (s: Supplier) => {
+      setEditingSupplierId(s.id);
+      setNewName(s.name);
+      setNewWebsite(s.website);
+      setNewEmail(s.email || '');
+      setNewProducts(s.products.join(', '));
+      setNewNotes(s.notes);
+      setIsModalOpen(true);
+  };
+
+  const handleDeleteSupplier = (id: string) => {
+      if(window.confirm("Supprimer ce fournisseur ?")) {
+          deleteSupplier(id);
+          refreshData();
+      }
+  };
+
+  const openAddModal = () => {
+      setEditingSupplierId(null);
+      setNewName('');
+      setNewWebsite('');
+      setNewEmail('');
+      setNewProducts('');
+      setNewNotes('');
+      setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+      setIsModalOpen(false);
+      setEditingSupplierId(null);
+  };
+  
+  const handleOrderPerSupplier = async (supplierId: string) => {
+    const items = cart[supplierId];
+    const supplier = suppliers.find(s => s.id === supplierId);
+    
+    if (supplier && items) {
+        const orderItems: OrderItem[] = Object.entries(items).map(([name, quantity]) => ({ name, quantity }));
+        
+        // 1. Créer la commande interne (Suivi)
+        const newOrder: Order = {
+            id: Date.now().toString(),
+            supplierId,
             supplierName: supplier.name,
             date: new Date().toISOString(),
             status: 'En attente',
-            items: items
+            items: orderItems,
+            totalAmount: 0 
         };
-        
-        addOrder(order);
-        newOrders.push(order);
-    });
+        addOrder(newOrder);
+        setOrders(getData().orders);
 
-    // Mise à jour de l'état local pour affichage immédiat
-    setOrders(prev => [...newOrders, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+        // 2. Copier la liste des articles dans le presse-papier
+        const itemsList = orderItems.map(i => `${i.quantity}x ${i.name}`).join('\n');
+        try {
+            await navigator.clipboard.writeText(itemsList);
+            alert(`Liste d'articles copiée ! \n\nVous allez être redirigé vers le site de ${supplier.name}.`);
+        } catch (err) {
+            console.error('Erreur lors de la copie', err);
+        }
 
-    alert('Commandes enregistrées et envoyées aux fournisseurs !');
-    setIsOrderModalOpen(false);
-    clearCart();
-    setActiveTab('tracking'); // Rediriger vers le suivi
+        // 3. Ouvrir le site web du fournisseur
+        if (supplier.website) {
+            window.open(supplier.website, '_blank');
+        } else {
+            alert(`Commande enregistrée dans le suivi, mais aucun site web n'est renseigné pour ${supplier.name}.`);
+        }
+
+        // 4. Retirer les articles commandés du panier
+        setCart(prev => {
+            const { [supplierId]: _, ...rest } = prev;
+            return rest;
+        });
+
+        // 5. Fermer la modale si le panier est vide
+        const remainingSuppliers = Object.keys(cart).filter(id => id !== supplierId);
+        if (remainingSuppliers.length === 0) {
+            setIsOrderModalOpen(false);
+            setActiveTab('tracking');
+        }
+    }
   };
-
-  const handleStatusChange = (order: Order, newStatus: 'En attente' | 'Livrée') => {
-      const updatedOrder = { ...order, status: newStatus };
-      updateOrder(updatedOrder);
-      setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
-  };
-
-  const handleSaveStock = (productName: string) => {
-    const newItem: InventoryItem = {
-      productName,
-      quantity: editQty,
-      threshold: editThreshold,
-      lastUpdated: new Date().toISOString()
-    };
-    const data = updateInventoryItem(newItem);
-    setInventory(data.inventory);
-    setEditingItem(null);
-  };
-
-  const startEditing = (productName: string, currentQty: number, currentThreshold: number) => {
-    setEditingItem(productName);
-    setEditQty(currentQty);
-    setEditThreshold(currentThreshold);
-  };
-
-  const totalItems = (Object.values(cart) as Record<string, number>[]).reduce((acc: number, supplierCart: Record<string, number>) => {
-    return acc + Object.values(supplierCart).reduce((sum: number, qty: number) => sum + qty, 0);
-  }, 0);
   
-  const suppliersInvolved = Object.keys(cart).length;
+  const handleStatusChange = (order: Order, newStatus: 'En attente' | 'Livrée') => {
+      updateOrder({ ...order, status: newStatus });
+      setOrders(getData().orders);
+  };
 
-  // --- LOGIC POUR VUE STOCKS ---
-  // Agréger tous les produits de tous les fournisseurs
-  const allProducts = suppliers.flatMap(s => s.products.map(p => ({
-    name: p,
-    supplierId: s.id,
-    supplierName: s.name
-  })));
+  const handleDeleteOrder = (id: string) => {
+      if(window.confirm("Supprimer cette commande de l'historique ?")) {
+          deleteOrder(id);
+          refreshData();
+      }
+  };
+  
+  const handleSaveStock = (productName: string) => {
+    updateInventoryItem({ productName, quantity: editQty, threshold: editThreshold, lastUpdated: new Date().toISOString() });
+    setInventory(getData().inventory); setEditingItem(null);
+  };
 
-  // Calculer le nombre de produits en alerte pour la bannière
-  const lowStockCount = allProducts.filter(p => {
-    const stockData = inventory.find(i => i.productName === p.name);
-    const quantity = stockData ? stockData.quantity : 0;
-    const threshold = stockData ? stockData.threshold : 2;
-    return quantity <= threshold;
-  }).length;
-
-  // Filtrer la liste affichée
-  const filteredStockProducts = allProducts.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSupplier = stockSupplierFilter === 'all' || p.supplierId === stockSupplierFilter;
-    return matchesSearch && matchesSupplier;
-  });
+  // UI Logic
+  const allProducts = suppliers.flatMap(s => s.products.map(p => ({ name: p, supplierId: s.id, supplierName: s.name })));
+  const lowStockCount = allProducts.filter(p => { const i = inventory.find(i => i.productName === p.name); return (i ? i.quantity : 0) <= (i ? i.threshold : 2); }).length;
+  const filteredStockProducts = allProducts.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && (stockSupplierFilter === 'all' || p.supplierId === stockSupplierFilter));
+  const totalItems = (Object.values(cart) as any[]).reduce((acc, c) => acc + Object.values(c).reduce((s:number, q:number) => s + q, 0), 0);
+  
+  const filteredSuppliers = suppliers.filter(s => 
+      s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      s.products.some(p => p.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
-    <div className="space-y-6">
-      
-      {/* Header & Tabs */}
-      <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 border-b border-[#D4A373] pb-4">
+    <div className="space-y-8 pb-24">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-[#D4A373]/30 pb-4">
         <div>
-            <h1 className="text-3xl font-serif font-bold text-stone-900">Fournisseurs & Stocks</h1>
-            <p className="text-stone-500 mt-1">Gérez vos réapprovisionnements et quantités.</p>
+            <h1 
+                className="text-5xl font-knife tracking-wide"
+                style={{
+                    background: 'linear-gradient(to bottom, #F5F5F4 0%, #A8A29E 45%, #57534E 50%, #A8A29E 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.4))',
+                    WebkitTextStroke: '1px #44403C',
+                }}
+            >
+                Fournisseurs
+            </h1>
+            <p className="text-stone-600 mt-1 font-medium">Gérez votre carnet d'adresses et vos stocks.</p>
         </div>
         
-        <div className="bg-stone-100 p-1 rounded-xl flex overflow-x-auto max-w-full">
-            <button 
-                onClick={() => setActiveTab('order')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'order' ? 'bg-white text-stone-900 shadow-sm border border-[#D4A373]' : 'text-stone-500 hover:text-stone-900'}`}
-            >
-                <ShoppingCart size={16} className={activeTab === 'order' ? "text-[#D4A373]" : ""} /> Prise de Commande
-            </button>
-            <button 
-                onClick={() => setActiveTab('tracking')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'tracking' ? 'bg-white text-stone-900 shadow-sm border border-[#D4A373]' : 'text-stone-500 hover:text-stone-900'}`}
-            >
-                <Archive size={16} className={activeTab === 'tracking' ? "text-[#D4A373]" : ""} /> Suivi Livraisons
-            </button>
-            <button 
-                onClick={() => setActiveTab('stock')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'stock' ? 'bg-white text-stone-900 shadow-sm border border-[#D4A373]' : 'text-stone-500 hover:text-stone-900'}`}
-            >
-                <div className="relative">
-                    <LayoutList size={16} className={activeTab === 'stock' ? "text-[#D4A373]" : ""} />
-                    {lowStockCount > 0 && <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
-                </div>
-                 Stocks
-            </button>
-            <button 
-                onClick={() => setActiveTab('directory')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'directory' ? 'bg-white text-stone-900 shadow-sm border border-[#D4A373]' : 'text-stone-500 hover:text-stone-900'}`}
-            >
-                <Truck size={16} className={activeTab === 'directory' ? "text-[#D4A373]" : ""} /> Annuaire
-            </button>
+        <div className="flex gap-4 items-center w-full md:w-auto">
+            <div className="bg-white/40 p-1 rounded-2xl flex overflow-x-auto backdrop-blur-sm border border-white/40 no-scrollbar flex-1 md:flex-none">
+                <button onClick={() => setActiveTab('directory')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'directory' ? 'bg-white text-stone-900 shadow-sm border border-[#D4A373]' : 'text-stone-600 hover:text-stone-900'}`}><LayoutList size={16} /> Liste</button>
+                <button onClick={() => setActiveTab('order')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'order' ? 'bg-white text-stone-900 shadow-sm border border-[#D4A373]' : 'text-stone-600 hover:text-stone-900'}`}><ShoppingCart size={16} /> Commande</button>
+                <button onClick={() => setActiveTab('tracking')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'tracking' ? 'bg-white text-stone-900 shadow-sm border border-[#D4A373]' : 'text-stone-600 hover:text-stone-900'}`}><Archive size={16} /> Suivi</button>
+                <button onClick={() => setActiveTab('stock')} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'stock' ? 'bg-white text-stone-900 shadow-sm border border-[#D4A373]' : 'text-stone-600 hover:text-stone-900'}`}>Stocks {lowStockCount > 0 && <span className="w-2 h-2 bg-red-500 rounded-full ml-1"></span>}</button>
+            </div>
         </div>
       </div>
 
-      {/* --- TAB: PRISE DE COMMANDE (ORDER) --- */}
-      {activeTab === 'order' && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-            {/* Search Bar */}
-            <div className="relative mb-6">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#D4A373]" size={20} />
-                <input 
-                  type="text" 
-                  placeholder="Rechercher un produit (ex: Gel, Limes, Coton...)" 
-                  className="w-full pl-12 pr-4 py-4 rounded-xl border border-[#D4A373] focus:outline-none focus:ring-2 focus:ring-[#D4A373] transition-all bg-white shadow-sm"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+      {/* --- TAB: ANNUAIRE (LISTE TABLEAU) --- */}
+      {activeTab === 'directory' && (
+        <div className="space-y-6">
+             <div className="flex justify-between items-center gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#D4A373]" size={20} />
+                    <input 
+                    type="text" 
+                    placeholder="Rechercher un fournisseur..." 
+                    className="w-full pl-12 pr-4 py-4 rounded-2xl border border-white/40 bg-white/40 backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-[#D4A373] transition-all shadow-sm placeholder-stone-400 text-stone-800"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <button 
+                onClick={openAddModal}
+                className="bg-stone-900 hover:scale-[1.02] text-[#D4A373] px-5 py-4 rounded-2xl flex items-center gap-2 transition-all shadow-lg border border-[#D4A373] whitespace-nowrap"
+                >
+                <Plus size={18} className="text-[#D4A373]" />
+                Ajouter
+                </button>
             </div>
 
-            {/* Product Grid */}
-            <div className="space-y-8 pb-24">
-                {suppliers.map(supplier => {
-                    const products = supplier.products.filter(p => p.toLowerCase().includes(searchTerm.toLowerCase()));
-                    if (products.length === 0) return null;
-
-                    const supplierCart = (cart[supplier.id] || {}) as Record<string, number>;
-                    const supplierTotalQty = Object.values(supplierCart).reduce((a: number, b: number) => a + b, 0);
-
-                    return (
-                        <div key={supplier.id} className="bg-white rounded-2xl border border-[#D4A373] overflow-hidden shadow-sm">
-                            <div className="bg-[#FAEDCD]/30 p-4 border-b border-[#D4A373] flex justify-between items-center">
-                                <div className="flex items-center gap-2">
-                                    <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center text-stone-700 font-bold border border-[#D4A373]">
-                                        {supplier.name.charAt(0)}
-                                    </div>
-                                    <h3 className="font-bold text-stone-900">{supplier.name}</h3>
-                                </div>
-                                <span className={`text-xs uppercase tracking-wider font-bold transition-colors ${supplierTotalQty > 0 ? 'text-[#D4A373]' : 'text-stone-400'}`}>
-                                    {supplierTotalQty > 0 ? `${supplierTotalQty} article(s)` : '0 article'}
-                                </span>
-                            </div>
-                            <div className="divide-y divide-[#D4A373]/20">
-                                {products.map((product, idx) => {
-                                    const qty = getQuantity(supplier.id, product);
-                                    return (
-                                        <div 
-                                            key={idx} 
-                                            className={`p-4 flex items-center justify-between transition-colors hover:bg-[#FAEDCD]/20 group ${qty > 0 ? 'bg-[#FAEDCD]/40' : ''}`}
-                                        >
-                                            <div className="flex items-center gap-3 cursor-pointer" onClick={() => qty === 0 && updateQuantity(supplier.id, product, 1)}>
-                                                <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${qty > 0 ? 'bg-stone-900 border-stone-900 text-white' : 'border-[#D4A373] bg-white text-[#D4A373]'}`}>
-                                                    {qty > 0 && <Check size={12} />}
+            <div className="bg-white/40 backdrop-blur-xl rounded-[2.5rem] shadow-sm border border-white/40 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-[#FAEDCD]/30 border-b border-[#D4A373]/20 text-xs font-bold text-[#D4A373] uppercase tracking-wider">
+                                <th className="p-5">Fournisseur</th>
+                                <th className="p-5">Contact</th>
+                                <th className="p-5">Spécialités</th>
+                                <th className="p-5 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#D4A373]/10 text-sm">
+                            {filteredSuppliers.map(supplier => (
+                                <tr key={supplier.id} className="hover:bg-white/30 transition-colors group">
+                                    <td className="p-5 align-top w-[30%]">
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-10 w-10 shrink-0 rounded-full bg-[#FAEDCD]/50 flex items-center justify-center text-[#D4A373] font-serif font-bold border border-[#D4A373]/50 shadow-sm">
+                                                    {supplier.name.charAt(0)}
                                                 </div>
-                                                <span className={`text-sm font-medium ${qty > 0 ? 'text-stone-900 font-bold' : 'text-stone-600'}`}>
-                                                    {product}
-                                                </span>
+                                                <div className="font-bold text-stone-900 text-lg font-serif">{supplier.name}</div>
                                             </div>
-                                            
-                                            {qty > 0 ? (
-                                                <div className="flex items-center gap-1 bg-white border border-[#D4A373] rounded-lg p-1 shadow-sm animate-in fade-in zoom-in duration-200">
-                                                    <button 
-                                                        onClick={() => updateQuantity(supplier.id, product, -1)}
-                                                        className="w-7 h-7 flex items-center justify-center rounded bg-stone-100 hover:bg-stone-200 text-stone-600 active:scale-95 transition-transform"
-                                                    >
-                                                        <Minus size={14} />
-                                                    </button>
-                                                    <span className="text-sm font-bold w-6 text-center text-stone-900">{qty}</span>
-                                                    <button 
-                                                        onClick={() => updateQuantity(supplier.id, product, 1)}
-                                                        className="w-7 h-7 flex items-center justify-center rounded bg-stone-900 text-white hover:bg-black active:scale-95 transition-transform"
-                                                    >
-                                                        <Plus size={14} />
-                                                    </button>
+                                            {supplier.notes && (
+                                                <div className="text-xs text-stone-700 bg-[#FAEDCD]/20 p-2 rounded-lg border border-[#D4A373]/20 italic">
+                                                    {supplier.notes}
                                                 </div>
-                                            ) : (
-                                                <button 
-                                                    onClick={() => updateQuantity(supplier.id, product, 1)}
-                                                    className="text-[#D4A373] hover:text-stone-900 transition-colors p-2 bg-stone-50 rounded-lg hover:bg-white border border-transparent hover:border-[#D4A373]"
-                                                >
-                                                    <Plus size={18} />
-                                                </button>
                                             )}
                                         </div>
-                                    );
-                                })}
-                            </div>
+                                    </td>
+                                    <td className="p-5 align-top space-y-2">
+                                        {supplier.website && (
+                                            <div className="flex items-center gap-2">
+                                                <ExternalLink size={14} className="text-stone-400"/>
+                                                <a 
+                                                    href={supplier.website} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="text-stone-700 hover:text-[#D4A373] hover:underline"
+                                                >
+                                                    {supplier.website.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}
+                                                </a>
+                                            </div>
+                                        )}
+                                        {supplier.email && (
+                                            <div className="flex items-center gap-2">
+                                                <Mail size={14} className="text-stone-400"/>
+                                                <a href={`mailto:${supplier.email}`} className="text-stone-700 hover:text-[#D4A373] hover:underline">
+                                                    {supplier.email}
+                                                </a>
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="p-5 align-top">
+                                        <div className="flex flex-wrap gap-2">
+                                            {supplier.products.map((p, i) => (
+                                                <span key={i} className="text-[10px] bg-white/50 px-2 py-1 rounded-lg border border-stone-200 text-stone-600 font-medium">
+                                                    {p}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </td>
+                                    <td className="p-5 text-right align-top">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button 
+                                                onClick={() => handleEditSupplier(supplier)}
+                                                className="p-2 text-stone-400 hover:text-stone-800 hover:bg-white/50 rounded-lg transition-colors"
+                                                title="Modifier"
+                                            >
+                                                <PenLine size={16} />
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDeleteSupplier(supplier.id)}
+                                                className="p-2 text-stone-400 hover:text-red-500 hover:bg-red-50/50 rounded-lg transition-colors"
+                                                title="Supprimer"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                    {filteredSuppliers.length === 0 && (
+                        <div className="p-10 text-center text-stone-400">
+                            Aucun fournisseur trouvé.
                         </div>
-                    );
-                })}
+                    )}
+                </div>
             </div>
+        </div>
+      )}
 
-            {/* Floating Bottom Bar */}
-            {totalItems > 0 && (
-                <div className="fixed bottom-6 left-0 right-0 px-4 md:px-0 flex justify-center z-20">
-                    <div className="bg-stone-900 text-white rounded-2xl shadow-2xl p-4 w-full max-w-2xl flex items-center justify-between animate-in slide-in-from-bottom duration-300 border border-[#D4A373]">
-                        <div className="flex items-center gap-4">
-                            <div className="bg-white/20 p-2 rounded-lg relative">
-                                <ShoppingBag size={24} className="text-[#FAEDCD] fill-[#FAEDCD]" />
-                                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-stone-900">
-                                    {totalItems}
-                                </span>
-                            </div>
-                            <div>
-                                <p className="font-bold text-sm">{totalItems} produits au total</p>
-                                <p className="text-xs text-stone-400">Chez {suppliersInvolved} fournisseur(s)</p>
-                            </div>
+      {/* --- TAB: COMMANDE (ORDER) --- */}
+      {activeTab === 'order' && (
+        <div className="space-y-8 pb-24">
+            <div className="relative mb-6">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#D4A373]" size={20} />
+                <input type="text" placeholder="Rechercher un produit ou fournisseur..." className="w-full pl-12 pr-4 py-4 rounded-2xl border border-white/40 bg-white/40 backdrop-blur-md focus:outline-none focus:ring-2 focus:ring-[#D4A373] transition-all shadow-sm placeholder-stone-400 text-stone-800" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            </div>
+            {suppliers.map(supplier => {
+                const products = supplier.products.filter(p => p.toLowerCase().includes(searchTerm.toLowerCase()));
+                if (products.length === 0 && !supplier.name.toLowerCase().includes(searchTerm.toLowerCase())) return null;
+                const displayProducts = supplier.products; // Show all if supplier matches, otherwise filter
+                
+                const qty = Object.values((cart[supplier.id] || {})).reduce((a:number, b:number) => a + b, 0);
+                
+                return (
+                    <div key={supplier.id} className="bg-white/40 backdrop-blur-xl rounded-2xl border border-white/40 overflow-hidden shadow-sm animate-in fade-in">
+                        <div className="bg-[#FAEDCD]/30 p-4 border-b border-[#D4A373]/30 flex justify-between items-center">
+                            <h3 className="font-bold text-stone-900">{supplier.name}</h3>
+                            <span className={`text-xs font-bold ${qty > 0 ? 'text-[#D4A373]' : 'text-stone-400'}`}>{qty} art.</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                             <button 
-                                onClick={clearCart}
-                                className="p-2 hover:bg-white/10 rounded-lg text-stone-400 transition-colors"
-                                title="Vider le panier"
-                             >
-                                <Trash2 size={18} />
-                             </button>
-                             <button 
-                                onClick={() => setIsOrderModalOpen(true)}
-                                className="bg-[#FAEDCD] text-stone-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-white transition-colors shadow-lg border border-[#D4A373]"
-                             >
-                                Valider & Commander
-                             </button>
+                        <div className="divide-y divide-[#D4A373]/10">
+                            {displayProducts.map((product, idx) => {
+                                const q = getQuantity(supplier.id, product);
+                                if (searchTerm && !product.toLowerCase().includes(searchTerm.toLowerCase()) && !supplier.name.toLowerCase().includes(searchTerm.toLowerCase())) return null;
+
+                                return (
+                                    <div key={idx} className={`p-4 flex items-center justify-between ${q > 0 ? 'bg-[#FAEDCD]/40' : 'hover:bg-white/20'}`}>
+                                        <span className="text-sm font-bold text-stone-800">{product}</span>
+                                        {q > 0 ? (
+                                            <div className="flex items-center gap-2 bg-white/80 rounded-lg p-1 border border-[#D4A373]/30">
+                                                <button onClick={() => updateQuantity(supplier.id, product, -1)} className="w-7 h-7 flex items-center justify-center rounded bg-stone-100 hover:bg-stone-200"><Minus size={14}/></button>
+                                                <span className="font-bold w-6 text-center text-stone-900">{q}</span>
+                                                <button onClick={() => updateQuantity(supplier.id, product, 1)} className="w-7 h-7 flex items-center justify-center rounded bg-stone-900 text-white hover:bg-black"><Plus size={14}/></button>
+                                            </div>
+                                        ) : (
+                                            <button onClick={() => updateQuantity(supplier.id, product, 1)} className="text-[#D4A373] p-2 bg-stone-50/50 rounded-lg hover:bg-[#D4A373] hover:text-white transition-colors"><Plus size={18}/></button>
+                                        )}
+                                    </div>
+                                )
+                            })}
                         </div>
+                    </div>
+                );
+            })}
+             {totalItems > 0 && (
+                <div className="fixed bottom-6 left-0 right-0 px-4 flex justify-center z-20">
+                    <div className="bg-stone-900/90 backdrop-blur-md text-white rounded-2xl shadow-2xl p-4 w-full max-w-lg flex items-center justify-between border border-[#D4A373]">
+                        <div className="font-bold flex items-center gap-2"><ShoppingCart size={18}/> {totalItems} articles</div>
+                        <button onClick={() => setIsOrderModalOpen(true)} className="bg-[#FAEDCD] text-stone-900 px-6 py-2 rounded-xl font-bold text-sm border border-[#D4A373] hover:bg-white transition-colors">Commander</button>
                     </div>
                 </div>
             )}
         </div>
       )}
 
-      {/* --- TAB: SUIVI LIVRAISONS (TRACKING) --- */}
+      {/* --- TAB: SUIVI (TRACKING) --- */}
       {activeTab === 'tracking' && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300 space-y-6">
+          <div className="space-y-4 pb-24">
               {orders.length === 0 ? (
-                  <div className="text-center py-20 text-stone-400 bg-white rounded-2xl border border-[#D4A373] border-dashed">
-                      <Archive size={48} className="mx-auto mb-4 opacity-50 text-[#D4A373]" />
-                      <p>Aucune commande en cours.</p>
-                  </div>
+                  <div className="text-center p-10 text-stone-400 bg-white/40 rounded-[2rem]">Aucune commande en cours.</div>
               ) : (
-                  <div className="grid grid-cols-1 gap-4">
-                      {orders.map((order) => (
-                          <div key={order.id} className="bg-white rounded-2xl border border-[#D4A373] p-6 shadow-sm hover:shadow-md transition-shadow">
-                              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-                                  <div>
-                                      <div className="flex items-center gap-3 mb-1">
-                                          <h3 className="font-bold text-stone-900 text-lg font-serif">{order.supplierName}</h3>
-                                          <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${
-                                              order.status === 'Livrée' 
-                                              ? 'bg-green-50 text-green-700 border-green-100' 
-                                              : 'bg-yellow-50 text-yellow-700 border-yellow-100'
-                                          }`}>
-                                              {order.status}
-                                          </span>
-                                      </div>
-                                      <div className="flex items-center gap-2 text-stone-500 text-xs">
-                                          <Calendar size={12} className="text-[#D4A373]" />
-                                          {new Date(order.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                      </div>
+                  orders.map(order => (
+                      <div key={order.id} className="bg-white/40 backdrop-blur-xl rounded-[2rem] border border-white/40 p-6 shadow-sm">
+                          <div className="flex justify-between items-start mb-4">
+                              <div>
+                                  <div className="flex items-center gap-2">
+                                      <h3 className="font-bold text-stone-900">{order.supplierName}</h3>
+                                      <span className="text-xs text-stone-500">{new Date(order.date).toLocaleDateString()}</span>
                                   </div>
-                                  
-                                  {order.status === 'En attente' && (
-                                      <button 
-                                        onClick={() => handleStatusChange(order, 'Livrée')}
-                                        className="bg-stone-900 text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-black transition-colors flex items-center gap-2 shadow-sm border border-[#D4A373]"
-                                      >
-                                          <Check size={14} />
-                                          Marquer comme Reçue
-                                      </button>
-                                  )}
+                                  <div className="text-xs text-stone-500 mt-1">{order.items.length} références</div>
                               </div>
-
-                              <div className="bg-stone-50 rounded-xl p-4 border border-[#D4A373]/20">
-                                  <p className="text-xs font-bold text-[#D4A373] uppercase tracking-wider mb-3">Détail de la commande</p>
-                                  <div className="space-y-2">
-                                      {order.items.map((item, idx) => (
-                                          <div key={idx} className="flex justify-between items-center text-sm">
-                                              <span className="text-stone-700">{item.name}</span>
-                                              <span className="font-mono font-bold text-stone-900">x{item.quantity}</span>
-                                          </div>
-                                      ))}
-                                  </div>
+                              <div className="flex items-center gap-2">
+                                <select 
+                                    value={order.status}
+                                    onChange={(e) => handleStatusChange(order, e.target.value as any)}
+                                    className={`text-xs font-bold px-3 py-1.5 rounded-lg border outline-none ${order.status === 'Livrée' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'}`}
+                                >
+                                    <option value="En attente">En attente</option>
+                                    <option value="Livrée">Reçue</option>
+                                </select>
+                                <button 
+                                    onClick={() => handleDeleteOrder(order.id)}
+                                    className="p-1.5 bg-white/50 text-stone-400 rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors shadow-sm border border-stone-200/50"
+                                    title="Supprimer"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
                               </div>
                           </div>
-                      ))}
-                  </div>
+                          <div className="space-y-1 pl-4 border-l-2 border-[#D4A373]/30">
+                              {order.items.map((item, i) => (
+                                  <div key={i} className="flex justify-between text-sm">
+                                      <span className="text-stone-700">{item.name}</span>
+                                      <span className="font-bold text-stone-900">x{item.quantity}</span>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                  ))
               )}
           </div>
       )}
 
-      {/* --- TAB: STOCKS (INVENTORY) --- */}
+      {/* --- TAB: STOCKS --- */}
       {activeTab === 'stock' && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-             
-             {/* Banner Alerte Stock Bas */}
-             {lowStockCount > 0 && (
-                <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-5 rounded-r-xl flex items-start gap-4 shadow-sm animate-pulse border border-red-200">
-                    <div className="p-2 bg-red-100 text-red-600 rounded-full shrink-0">
-                        <AlertTriangle size={24} />
-                    </div>
-                    <div>
-                        <h3 className="text-red-900 font-bold text-lg font-serif">Attention : Stock Critique</h3>
-                        <p className="text-red-700 text-sm mt-1">
-                            Vous avez <span className="font-bold underline text-red-900">{lowStockCount} produit(s)</span> en dessous du seuil d'alerte. Pensez à recommander rapidement.
-                        </p>
-                        <button 
-                            onClick={() => setActiveTab('order')} 
-                            className="mt-3 text-xs font-bold bg-white text-red-600 px-3 py-1.5 rounded border border-red-200 hover:bg-red-50 transition-colors"
-                        >
-                            Aller commander
-                        </button>
-                    </div>
-                </div>
-             )}
-
-             {/* Filtres */}
-             <div className="flex flex-col md:flex-row gap-4 mb-6">
-                <div className="flex-1 relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#D4A373]" size={20} />
-                    <input 
-                    type="text" 
-                    placeholder="Filtrer par nom de produit..." 
-                    className="w-full pl-12 pr-4 py-3 rounded-xl border border-[#D4A373] focus:outline-none focus:ring-2 focus:ring-[#D4A373] transition-all bg-white"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                <div className="md:w-64">
-                    <select 
-                        value={stockSupplierFilter} 
-                        onChange={e => setStockSupplierFilter(e.target.value)}
-                        className="w-full p-3 rounded-xl border border-[#D4A373] focus:outline-none focus:ring-2 focus:ring-[#D4A373] bg-white"
-                    >
-                        <option value="all">Tous les fournisseurs</option>
-                        {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                </div>
-             </div>
-
-             <div className="bg-white rounded-2xl border border-[#D4A373] overflow-hidden shadow-sm">
-                 <table className="w-full text-left border-collapse">
-                     <thead>
-                         <tr className="bg-[#FAEDCD]/30 border-b border-[#D4A373] text-xs font-bold text-[#D4A373] uppercase tracking-wider">
-                             <th className="p-4">Produit</th>
-                             <th className="p-4">Fournisseur</th>
-                             <th className="p-4 text-center">Commandés (Total)</th>
-                             <th className="p-4 text-center">Stock Actuel</th>
-                             <th className="p-4 text-center">Action</th>
-                         </tr>
-                     </thead>
-                     <tbody className="divide-y divide-[#D4A373]/20 text-sm">
+          <div className="bg-white/40 backdrop-blur-xl rounded-2xl border border-white/40 overflow-hidden shadow-sm">
+                 <table className="w-full text-left">
+                     <thead><tr className="bg-[#FAEDCD]/30 border-b border-[#D4A373]/30 text-xs font-bold text-[#D4A373] uppercase"><th className="p-4">Produit</th><th className="p-4 text-center">Stock</th><th className="p-4 text-center">Action</th></tr></thead>
+                     <tbody className="divide-y divide-[#D4A373]/10 text-sm">
                         {filteredStockProducts.map((p, idx) => {
-                            // Données Inventory (si existantes)
                             const stockData = inventory.find(i => i.productName === p.name);
-                            const quantity = stockData ? stockData.quantity : 0;
-                            const threshold = stockData ? stockData.threshold : 2; // Default threshold
-
-                            // Données Historique (Total Ordered)
-                            const totalOrdered = orders.reduce((acc, order) => {
-                                const item = order.items.find(i => i.name === p.name);
-                                return acc + (item ? item.quantity : 0);
-                            }, 0);
-
-                            const isLowStock = quantity <= threshold;
-
+                            const q = stockData ? stockData.quantity : 0;
+                            const isLow = q <= (stockData ? stockData.threshold : 2);
                             return (
-                                <tr key={idx} className={`transition-colors group border-b border-stone-50 ${isLowStock ? 'bg-red-50/60 hover:bg-red-100/50' : 'hover:bg-stone-50'}`}>
-                                    <td className="p-4 font-bold text-stone-800 flex items-center gap-2">
-                                        {p.name}
-                                        {isLowStock && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>}
-                                    </td>
-                                    <td className="p-4 text-stone-500">{p.supplierName}</td>
-                                    <td className="p-4 text-center font-mono text-stone-400">{totalOrdered}</td>
-                                    <td className="p-4 text-center">
-                                        {editingItem === p.name ? (
-                                            <div className="flex items-center justify-center gap-2">
-                                                <input 
-                                                    type="number" 
-                                                    value={editQty}
-                                                    onChange={e => setEditQty(Number(e.target.value))}
-                                                    className="w-16 p-1 text-center border border-[#D4A373] rounded font-bold"
-                                                    autoFocus
-                                                />
-                                                <span className="text-xs text-stone-400">/ Seuil:</span>
-                                                 <input 
-                                                    type="number" 
-                                                    value={editThreshold}
-                                                    onChange={e => setEditThreshold(Number(e.target.value))}
-                                                    className="w-12 p-1 text-center border border-[#D4A373] rounded text-xs"
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col items-center justify-center gap-1">
-                                                 <span className={`font-bold text-lg ${isLowStock ? 'text-red-600' : 'text-stone-900'}`}>
-                                                    {quantity}
-                                                </span>
-                                                {isLowStock && (
-                                                    <div className="flex items-center gap-1 text-red-600 bg-white border border-red-200 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase shadow-sm">
-                                                        <AlertTriangle size={10} className="stroke-[3]" />
-                                                        Critique
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="p-4 text-center">
-                                        {editingItem === p.name ? (
-                                            <button 
-                                                onClick={() => handleSaveStock(p.name)}
-                                                className="p-2 bg-stone-900 text-white rounded-lg hover:bg-black transition-colors"
-                                                title="Enregistrer"
-                                            >
-                                                <Save size={16} />
-                                            </button>
-                                        ) : (
-                                            <button 
-                                                onClick={() => startEditing(p.name, quantity, threshold)}
-                                                className="p-2 text-stone-400 hover:text-stone-900 hover:bg-stone-200 rounded-lg transition-colors"
-                                                title="Modifier le stock"
-                                            >
-                                                <PenLine size={16} className="text-[#D4A373]" />
-                                            </button>
-                                        )}
-                                    </td>
+                                <tr key={idx} className={isLow ? 'bg-red-50/60' : 'hover:bg-white/30'}>
+                                    <td className="p-4 font-bold text-stone-800">{p.name} {isLow && <span className="text-red-500 font-bold text-xs ml-2">!</span>}</td>
+                                    <td className="p-4 text-center font-bold text-lg">{editingItem === p.name ? <input type="number" value={editQty} onChange={e => setEditQty(Number(e.target.value))} className="w-16 p-1 text-center border rounded"/> : q}</td>
+                                    <td className="p-4 text-center">{editingItem === p.name ? <button onClick={() => handleSaveStock(p.name)} className="bg-stone-900 text-white p-2 rounded"><Save size={16}/></button> : <button onClick={() => { setEditingItem(p.name); setEditQty(q); setEditThreshold(stockData ? stockData.threshold : 2); }}><PenLine size={16} className="text-stone-400"/></button>}</td>
                                 </tr>
-                            );
+                            )
                         })}
                      </tbody>
                  </table>
-                 {filteredStockProducts.length === 0 && (
-                     <div className="p-10 text-center text-stone-400">Aucun produit trouvé.</div>
-                 )}
-             </div>
           </div>
       )}
 
-      {/* --- TAB: ANNUAIRE (DIRECTORY) - MODE TABLEAU --- */}
-      {activeTab === 'directory' && (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-             <div className="flex justify-end mb-6">
-                <button 
-                onClick={() => setIsAddModalOpen(true)}
-                className="bg-white border border-[#D4A373] hover:border-stone-900 text-stone-900 px-5 py-3 rounded-xl flex items-center gap-2 transition-all shadow-sm"
-                >
-                <Plus size={18} className="text-[#D4A373]" />
-                Nouveau Fournisseur
-                </button>
-            </div>
-
-            <div className="bg-white rounded-3xl shadow-sm border border-[#D4A373] overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-[#FAEDCD]/30 border-b border-[#D4A373] text-xs font-bold text-[#D4A373] uppercase tracking-wider">
-                                <th className="p-5">Fournisseur</th>
-                                <th className="p-5">Produits</th>
-                                <th className="p-5">Notes</th>
-                                <th className="p-5 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#D4A373]/20 text-sm">
-                            {suppliers.map(s => (
-                                <tr key={s.id} className="hover:bg-[#FAEDCD]/20 transition-colors group">
-                                    <td className="p-5">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-full bg-[#FAEDCD] flex items-center justify-center text-[#D4A373] font-serif font-bold border border-[#D4A373]">
-                                                {s.name.charAt(0)}
-                                            </div>
-                                            <div className="font-bold text-stone-900">{s.name}</div>
-                                        </div>
-                                    </td>
-                                    <td className="p-5">
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {s.products.map((p, idx) => (
-                                                <span key={idx} className="bg-stone-50 text-stone-600 px-2 py-0.5 rounded text-[10px] font-bold border border-[#D4A373]/20">
-                                                    {p}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </td>
-                                    <td className="p-5 text-stone-500 italic max-w-xs truncate" title={s.notes}>
-                                        {s.notes}
-                                    </td>
-                                    <td className="p-5 text-right">
-                                        <a 
-                                            href={s.website} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-2 bg-stone-900 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-black transition-colors shadow-sm border border-[#D4A373]"
-                                        >
-                                            Visiter
-                                            <ExternalLink size={12} />
-                                        </a>
-                                    </td>
-                                </tr>
-                            ))}
-                            {suppliers.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="p-8 text-center text-stone-400 italic">Aucun fournisseur enregistré.</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-      )}
-
-      {/* --- MODAL DE CONFIRMATION COMMANDE --- */}
+      {/* --- MODALS --- */}
+      {/* Modal Confirmation Commande (OUVERTURE SITE) */}
       {isOrderModalOpen && (
         <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[80vh] border border-[#D4A373]">
-                <div className="p-6 border-b border-[#D4A373] bg-[#FAEDCD]/30">
-                    <h2 className="text-2xl font-serif font-bold text-stone-900 flex items-center gap-2">
-                        <Send size={24} className="text-stone-900" />
-                        Envoi des commandes
-                    </h2>
-                    <p className="text-stone-500 text-sm mt-1">Récapitulatif avant envoi aux fournisseurs.</p>
-                </div>
+            <div className="bg-white/90 rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl relative border border-[#D4A373] max-h-[80vh] overflow-y-auto">
+                <button onClick={() => setIsOrderModalOpen(false)} className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-900"><X size={20}/></button>
+                <h2 className="text-xl font-bold text-stone-900 mb-6 font-serif">Commander en ligne</h2>
+                <p className="text-sm text-stone-500 mb-6 italic">Cliquez pour copier la liste de vos articles et ouvrir le site du fournisseur pour passer commande.</p>
                 
-                <div className="p-6 overflow-y-auto flex-1 space-y-4">
-                    {Object.keys(cart).map(supplierId => {
-                        const supplier = suppliers.find(s => s.id === supplierId);
-                        const products = cart[supplierId] as Record<string, number>;
-                        if (!supplier) return null;
+                <div className="space-y-6">
+                    {Object.entries(cart).map(([supplierId, items]) => {
+                         const supplier = suppliers.find(s => s.id === supplierId);
+                         if (!supplier) return null;
+                         const totalItemsCount = Object.values(items).reduce((a, b) => a + b, 0);
 
-                        const totalQty = Object.values(products).reduce((a: number, b: number) => a + b, 0);
-
-                        return (
-                            <div key={supplierId} className="border border-[#D4A373] rounded-xl p-4 bg-white relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-1 h-full bg-stone-900"></div>
-                                <div className="flex justify-between items-start mb-2 pl-2">
-                                    <h3 className="font-bold text-stone-900">{supplier.name}</h3>
-                                    <span className="text-[10px] bg-stone-100 text-stone-500 px-2 py-1 rounded font-mono">
-                                        {totalQty} articles
-                                    </span>
-                                </div>
-                                <ul className="pl-6 text-sm text-stone-600 space-y-2">
-                                    {Object.entries(products).map(([name, qty], i) => (
-                                        <li key={i} className="flex justify-between items-center pr-2">
-                                            <span>{name}</span>
-                                            <span className="font-bold bg-stone-100 text-stone-800 px-2 py-0.5 rounded text-xs min-w-[2rem] text-center">x {qty}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-                                <div className="mt-3 pt-3 border-t border-stone-100 flex items-center gap-2 text-xs text-blue-600 font-medium">
-                                    <Send size={12} />
-                                    Prêt à être envoyé à {supplier.website.replace('https://', '')}
-                                </div>
-                            </div>
-                        )
+                         return (
+                             <div key={supplierId} className="bg-stone-50 rounded-2xl p-5 border border-stone-200">
+                                 <div className="flex justify-between items-start mb-3">
+                                     <h4 className="font-bold text-stone-900 font-serif text-lg">{supplier.name}</h4>
+                                     <span className="text-xs font-bold bg-white px-2 py-1 rounded border border-stone-200">{totalItemsCount} art.</span>
+                                 </div>
+                                 <ul className="space-y-1 mb-4 border-l-2 border-[#D4A373]/30 pl-3">
+                                     {Object.entries(items).map(([name, qty]) => (
+                                         <li key={name} className="flex justify-between text-sm text-stone-600"><span className="truncate pr-2">{name}</span><span className="font-bold text-stone-900 shrink-0">x{qty}</span></li>
+                                     ))}
+                                 </ul>
+                                 
+                                 <button 
+                                    onClick={() => handleOrderPerSupplier(supplierId)}
+                                    className="w-full py-3 bg-stone-900 text-[#D4A373] font-bold rounded-xl shadow-md border border-[#D4A373] hover:scale-[1.02] transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-wider"
+                                 >
+                                    <Globe size={14} /> Ouvrir le site
+                                 </button>
+                             </div>
+                         )
                     })}
-                </div>
-
-                <div className="p-6 border-t border-stone-100 bg-stone-50 flex gap-3">
-                    <button 
-                        onClick={() => setIsOrderModalOpen(false)}
-                        className="flex-1 py-3 text-stone-500 font-bold hover:bg-stone-200 rounded-xl transition-colors"
-                    >
-                        Annuler
-                    </button>
-                    <button 
-                        onClick={handleSendOrders}
-                        className="flex-[2] py-3 bg-stone-900 text-white font-bold rounded-xl hover:bg-black transition-all shadow-lg flex items-center justify-center gap-2 border border-[#D4A373]"
-                    >
-                        <Check size={18} />
-                        Confirmer et Enregistrer
-                    </button>
                 </div>
             </div>
         </div>
       )}
 
-      {/* --- MODAL AJOUT FOURNISSEUR --- */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md p-8 shadow-2xl border border-[#D4A373]">
-            <h2 className="text-2xl font-serif font-bold text-stone-900 mb-6">Nouveau Fournisseur</h2>
-            <form onSubmit={handleAddSupplier} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Nom</label>
-                <input required type="text" className="w-full p-4 rounded-xl bg-stone-50 border border-[#D4A373] focus:ring-2 focus:ring-[#D4A373] outline-none" value={newName} onChange={e => setNewName(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Site Web</label>
-                <input required type="url" className="w-full p-4 rounded-xl bg-stone-50 border border-[#D4A373] focus:ring-2 focus:ring-[#D4A373] outline-none" value={newWebsite} onChange={e => setNewWebsite(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Produits (séparés par virgule)</label>
-                <input type="text" className="w-full p-4 rounded-xl bg-stone-50 border border-[#D4A373] focus:ring-2 focus:ring-[#D4A373] outline-none" value={newProducts} onChange={e => setNewProducts(e.target.value)} placeholder="Gel, Limes, Huiles..." />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Notes</label>
-                <textarea className="w-full p-4 rounded-xl bg-stone-50 border border-[#D4A373] focus:ring-2 focus:ring-[#D4A373] outline-none" value={newNotes} onChange={e => setNewNotes(e.target.value)} rows={2} />
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 py-3 text-stone-500 font-bold hover:bg-stone-100 rounded-xl transition-colors">Annuler</button>
-                <button type="submit" className="flex-1 py-3 bg-stone-900 text-white font-bold rounded-xl hover:bg-black transition-colors shadow-lg border border-[#D4A373]">Ajouter</button>
-              </div>
-            </form>
-          </div>
+      {/* Modal Ajout/Modif Fournisseur */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white/90 rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl relative border border-[#D4A373]">
+                <button onClick={closeModal} className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-900"><X size={20}/></button>
+                <h2 className="text-xl font-bold text-stone-900 mb-6 font-serif">{editingSupplierId ? 'Modifier Fournisseur' : 'Nouveau Fournisseur'}</h2>
+                <form onSubmit={handleSaveSupplier} className="space-y-4">
+                    <input required type="text" placeholder="Nom" className="w-full p-4 rounded-2xl bg-white/60 border border-[#D4A373]/30 focus:ring-2 focus:ring-[#D4A373] outline-none" value={newName} onChange={e => setNewName(e.target.value)} />
+                    <input type="email" placeholder="Email Commande" className="w-full p-4 rounded-2xl bg-white/60 border border-[#D4A373]/30 focus:ring-2 focus:ring-[#D4A373] outline-none" value={newEmail} onChange={e => setNewEmail(e.target.value)} />
+                    <input type="text" placeholder="Site Web (ex: https://...)" className="w-full p-4 rounded-2xl bg-white/60 border border-[#D4A373]/30 focus:ring-2 focus:ring-[#D4A373] outline-none" value={newWebsite} onChange={e => setNewWebsite(e.target.value)} />
+                    <input type="text" placeholder="Produits (séparés par des virgules)" className="w-full p-4 rounded-2xl bg-white/60 border border-[#D4A373]/30 focus:ring-2 focus:ring-[#D4A373] outline-none" value={newProducts} onChange={e => setNewProducts(e.target.value)} />
+                    <textarea placeholder="Notes..." rows={3} className="w-full p-4 rounded-2xl bg-white/60 border border-[#D4A373]/30 focus:ring-2 focus:ring-[#D4A373] outline-none" value={newNotes} onChange={e => setNewNotes(e.target.value)} />
+                    <button type="submit" className="w-full py-3 bg-stone-900 text-[#D4A373] font-bold rounded-xl shadow-lg border border-[#D4A373] hover:scale-[1.02] transition-all">
+                        {editingSupplierId ? 'Mettre à jour' : 'Ajouter'}
+                    </button>
+                </form>
+            </div>
         </div>
       )}
+
     </div>
   );
 };

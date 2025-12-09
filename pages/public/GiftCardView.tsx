@@ -55,7 +55,7 @@ export const GiftCardView: React.FC = () => {
                         <span className="text-[10px] font-bold tracking-[0.3em] text-[#D4A373] uppercase">Gift Card</span>
                         <div className="flex flex-col items-center justify-center gap-1">
                              <h2 className="text-5xl font-serif font-bold text-white tracking-tight">{amount} €</h2>
-                             <p className="text-[10px] text-stone-400 mt-1 tracking-wide">Prendre RDV : bassova69@gmail.com</p>
+                             <p className="text-[10px] text-stone-400 mt-1 tracking-wide">Prendre RDV : shelleynailss@gmail.com</p>
                         </div>
                     </div>
 
@@ -96,7 +96,7 @@ export const GiftCardView: React.FC = () => {
         </div>
 
         <div className="mt-8 text-center text-stone-500 text-xs">
-            <p>Contact : <a href="mailto:bassova69@gmail.com" className="text-[#D4A373] hover:underline font-bold">bassova69@gmail.com</a></p>
+            <p>Contact : <a href="mailto:shelleynailss@gmail.com" className="text-[#D4A373] hover:underline font-bold">shelleynailss@gmail.com</a></p>
         </div>
       </div>
     </div>

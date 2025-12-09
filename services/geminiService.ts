@@ -11,22 +11,25 @@ const getAi = () => {
   return new GoogleGenAI({ apiKey });
 };
 
-export const generateReminderMessage = async (client: Client, appointmentDate: string): Promise<string> => {
+export const generateClientMessage = async (client: Client): Promise<string> => {
   const ai = getAi();
   if (!ai) return "Erreur: Clé API manquante. Impossible de générer le message.";
 
   const prompt = `
     Tu es Shelley, prothésiste ongulaire et fondatrice de Shelleynailss.
-    Rédige un message court, amical et professionnel pour Instagram (DM) pour rappeler à ta cliente son rendez-vous de demain avec toi.
+    Rédige un message court, amical et professionnel pour Instagram (DM) à ta cliente.
     
     IMPORTANT :
-    - Tu parles en ton nom propre : utilise "Je" (ex: "J'ai hâte de te voir", "Je te rappelle").
-    - Ne te présente pas comme une assistante ou "le salon". C'est toi, Shelley, qui écris.
+    - Tu parles en ton nom propre : utilise "Je".
+    - Ne te présente pas, elle te connait.
     
     Infos cliente :
     Nom : ${client.name}
-    Date du RDV : ${new Date(appointmentDate).toLocaleString('fr-FR', { weekday: 'long', hour: '2-digit', minute: '2-digit' })}
-    Notes sur la cliente : ${client.notes}
+    Notes : ${client.notes}
+    
+    Contexte : C'est un message de fidélisation pour prendre des nouvelles et garder le lien.
+    Si ça fait longtemps qu'elle n'est pas venue, dis-lui qu'elle te manque.
+    Suggère subtilement de regarder tes dispos si elle a envie de se faire des ongles, mais sans pression.
 
     Le ton doit être chaleureux, "girl boss" mais poli, avec quelques emojis mignons (ongles, cœur, éclats).
     Ne mets pas de guillemets.
@@ -37,10 +40,10 @@ export const generateReminderMessage = async (client: Client, appointmentDate: s
       model: 'gemini-2.5-flash',
       contents: prompt,
     });
-    return response.text || "Coucou ! Petit rappel pour ton RDV demain avec moi 💅. Hâte de te voir !";
+    return response.text || "Coucou ! J'espère que tu vas bien ? Hâte de te revoir pour sublimer tes ongles 💅✨";
   } catch (error) {
-    console.error("Error generating reminder:", error);
-    return "Coucou ! Petit rappel pour ton RDV demain avec moi 💅. Hâte de te voir !";
+    console.error("Error generating message:", error);
+    return "Coucou ! J'espère que tu vas bien ? Hâte de te revoir pour sublimer tes ongles 💅✨";
   }
 };
 

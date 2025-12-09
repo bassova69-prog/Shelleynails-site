@@ -14,7 +14,7 @@ export interface Transaction {
   id: string;
   date: string; // ISO date
   amount: number;
-  type: 'Especes' | 'Carte' | 'Virement' | 'Cheque';
+  type: 'Especes' | 'Carte Cadeaux' | 'Virement' | 'Cheque';
   category: 'Prestation' | 'Formation' | 'Vente' | 'Autre';
   description: string;
 }
@@ -23,6 +23,7 @@ export interface Supplier {
   id: string;
   name: string;
   website: string;
+  email?: string; // Ajout email contact commande
   products: string[];
   notes: string;
 }

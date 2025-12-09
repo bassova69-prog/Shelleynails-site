@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { addGiftCard } from '../../services/storage';
 import { GiftCard as GiftCardType } from '../../types';
-import { Gift, CheckCircle, Copy, Sparkles } from 'lucide-react';
+import { Gift, CheckCircle, Copy, Sparkles, CreditCard } from 'lucide-react';
 import { PublicLayout, BackButton } from '../../components/PublicLayout';
 
 export const GiftCardPage: React.FC = () => {
@@ -11,10 +11,17 @@ export const GiftCardPage: React.FC = () => {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [message, setMessage] = useState('');
+  const [paymentCode, setPaymentCode] = useState('');
   const [generatedCard, setGeneratedCard] = useState<GiftCardType | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Simulation de validation du code de paiement
+    if (paymentCode.length < 3) {
+        alert("Veuillez entrer un code valide.");
+        return;
+    }
+
     const code = 'SN-' + Math.random().toString(36).substr(2, 6).toUpperCase();
     const newCard: GiftCardType = {
       id: Date.now().toString(),
@@ -105,8 +112,29 @@ export const GiftCardPage: React.FC = () => {
                     />
                     </div>
 
-                    <button type="submit" className="w-full py-4 bg-[#D4A373] text-white font-bold rounded-xl hover:bg-[#C79667] transition-all shadow-lg shadow-[#D4A373]/30 mt-2">
-                    Procéder au paiement
+                    {/* SECTION PAIEMENT CARTE CADEAU */}
+                    <div className="pt-4 border-t border-stone-100">
+                        <label className="block text-xs font-bold text-stone-400 uppercase tracking-wider mb-2">Paiement</label>
+                        <div className="relative">
+                            <input
+                                required
+                                type="text"
+                                className="w-full p-4 pl-12 rounded-xl bg-stone-50 border border-stone-100 focus:ring-2 focus:ring-stone-900 outline-none transition-all uppercase font-mono placeholder-stone-400 text-stone-900"
+                                placeholder="Code Carte Cadeau"
+                                value={paymentCode}
+                                onChange={e => setPaymentCode(e.target.value)}
+                            />
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400">
+                                <CreditCard size={20} />
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-stone-400 mt-2 ml-1 italic">
+                            Entrez un code valide pour régler cette commande.
+                        </p>
+                    </div>
+
+                    <button type="submit" className="w-full py-4 bg-stone-900 text-[#D4A373] font-bold rounded-xl hover:scale-[1.02] transition-all shadow-lg border border-[#D4A373] mt-2 flex items-center justify-center gap-2">
+                       <Sparkles size={18} /> Valider avec le code
                     </button>
                 </form>
                 ) : (
@@ -130,7 +158,7 @@ export const GiftCardPage: React.FC = () => {
                             
                             <div className="text-center py-4">
                                 <h3 className="text-4xl font-serif font-bold text-white">{generatedCard?.amount} €</h3>
-                                <p className="text-[10px] text-stone-400 mt-2 tracking-wide">Prendre RDV : bassova69@gmail.com</p>
+                                <p className="text-[10px] text-stone-400 mt-2 tracking-wide">Prendre RDV : shelleynailss@gmail.com</p>
                             </div>
 
                             <div className="flex justify-between items-end border-t border-white/10 pt-4 mt-2">

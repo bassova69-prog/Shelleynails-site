@@ -1,7 +1,9 @@
 
+
 import { AppData, Client, Transaction, Supplier, GiftCard, Order, TaxDeclaration, InventoryItem, CoachingRequest, CollabRequest } from '../types';
 
 const STORAGE_KEY = 'shelleynails_data_v6';
+const PIN_STORAGE_KEY = 'shelleynails_admin_pin';
 
 const MOCK_DATA: AppData = {
   clients: [
@@ -11,26 +13,30 @@ const MOCK_DATA: AppData = {
     { id: '4', name: 'Emma Petit', instagram: '@emma_p', notes: 'Préfère le rouge classique. Retardataire chronique.', totalVisits: 5, lastVisit: '2023-10-01' },
   ],
   transactions: [
-    { id: '1', date: '2023-10-25', amount: 55, type: 'Carte', category: 'Prestation', description: 'Pose complète Chablon' },
+    { id: '1', date: '2023-10-25', amount: 55, type: 'Carte Cadeaux', category: 'Prestation', description: 'Pose complète Chablon' },
     { id: '2', date: '2023-10-25', amount: 40, type: 'Especes', category: 'Prestation', description: 'Remplissage Gel' },
     { id: '3', date: '2023-10-26', amount: 350, type: 'Virement', category: 'Formation', description: 'Acompte Formation Base' },
-    { id: '4', date: '2023-10-26', amount: 15, type: 'Carte', category: 'Vente', description: 'Huile à cuticules' },
-    { id: '5', date: '2023-10-27', amount: 65, type: 'Carte', category: 'Prestation', description: 'Nail Art 3D' },
-    { id: '6', date: '2023-10-27', amount: 55, type: 'Carte', category: 'Prestation', description: 'Pose complète Chablon' },
+    { id: '4', date: '2023-10-26', amount: 15, type: 'Carte Cadeaux', category: 'Vente', description: 'Huile à cuticules' },
+    { id: '5', date: '2023-10-27', amount: 65, type: 'Carte Cadeaux', category: 'Prestation', description: 'Nail Art 3D' },
+    { id: '6', date: '2023-10-27', amount: 55, type: 'Carte Cadeaux', category: 'Prestation', description: 'Pose complète Chablon' },
     { id: '7', date: '2023-10-28', amount: 45, type: 'Especes', category: 'Prestation', description: 'Remplissage Gel' },
-    { id: '8', date: '2023-10-28', amount: 15, type: 'Carte', category: 'Vente', description: 'Huile à cuticules' },
+    { id: '8', date: '2023-10-28', amount: 15, type: 'Carte Cadeaux', category: 'Vente', description: 'Huile à cuticules' },
   ],
   suppliers: [
-    { id: '1', name: 'Ongle24', website: 'https://www.ongle24.com', products: ['Gel UV Construction', 'Gel Monophase', 'Limes 100/180', 'Cleaner', 'Primer Acid Free'], notes: 'Livraison rapide (48h). Bon rapport qualité/prix.' },
-    { id: '2', name: 'Purple Professional', website: 'https://purpleprofessional.pt', products: ['Vernis semi Rouge', 'Vernis semi Nude', 'Top Coat Milky', 'Base Rubber', 'Polygel Clear'], notes: 'Leur Top Coat est incroyable, très brillant.' },
-    { id: '3', name: 'Amazon Business', website: 'https://amazon.fr', products: ['Coton cellulose', 'Masques noirs', 'Gants nitrile S', 'Rouleaux papier', 'Embouts ponceuse diamant'], notes: 'Pour le consommable et le jetable.' },
-    { id: '4', name: 'Nailish', website: 'https://nailish.org', products: ['Chablons Papillon', 'Pinceaux Nail Art', 'Paillettes vrac', 'Strass Swarovski'], notes: 'Pour le matériel artistique.' },
+    { id: '1', name: 'Passione Beauty', email: 'contact@passionebeauty.fr', website: 'https://www.passionebeauty.com', products: ['Gel Construction Alpha', 'Aqua Gloss', 'Couleurs SP', 'Pinceaux', 'Lampes UV'], notes: 'Le géant européen. Très bon rapport qualité/prix pour les couleurs.' },
+    { id: '2', name: 'OA Nail System', email: 'info@ongles-access.fr', website: 'https://www.ongles-access.fr', products: ['Structura', 'Gels Fibres', 'Wonderlack', 'Chablons'], notes: 'Marque française technique. Leurs gels de construction sont très solides.' },
+    { id: '3', name: 'Purple Professional', email: 'sales@purpleprofessional.pt', website: 'https://purpleprofessional.pt', products: ['Rubber Base', 'Top Coat Milky', 'Cleaner Berry', 'Low Heat Gel'], notes: 'Leur Top Coat est incroyable, ne raye pas.' },
+    { id: '4', name: 'Ongle24', email: 'service@ongle24.com', website: 'https://www.ongle24.com', products: ['Limes 100/180', 'Blocs polisseurs', 'Coton cellulose', 'Acetone'], notes: 'Idéal pour les consommables et les basiques pas chers.' },
+    { id: '5', name: 'Mnails', email: 'contact@mnails.fr', website: 'https://www.mnails.fr', products: ['Stickers', 'Foils', 'Paillettes vrac', 'Water Decals'], notes: 'La référence pour les décos et le Nail Art facile.' },
+    { id: '6', name: 'NC Beauty Pro', email: 'hello@nc-beautypro.fr', website: 'https://www.nc-beautypro.fr', products: ['Staleks Ciseaux', 'Embouts Diamant', 'Pousse cuticules', 'Gants Nitrile'], notes: 'Distributeur officiel Staleks. Le top pour l\'outillage.' },
+    { id: '7', name: 'The GelBottle', email: 'support@thegelbottle.com', website: 'https://thegelbottle.com', products: ['BIAB (Builder In A Bottle)', 'GelPot', 'DesignEx Pro'], notes: 'Marque Premium tendance. Le BIAB est un best-seller.' },
+    { id: '8', name: 'Amazon Business', email: '', website: 'https://amazon.fr', products: ['Masques noirs', 'Essuie-tout', 'Gants S', 'Sacs poubelle'], notes: 'Pour l\'hygiène et le jetable (livraison rapide).' },
   ],
   giftCards: [],
   orders: [
     { 
       id: '1', 
-      supplierId: '1', 
+      supplierId: '4', 
       supplierName: 'Ongle24', 
       date: new Date(Date.now() - 432000000).toISOString(), 
       status: 'Livrée', 
@@ -39,7 +45,7 @@ const MOCK_DATA: AppData = {
     },
     { 
       id: '2', 
-      supplierId: '3', 
+      supplierId: '8', 
       supplierName: 'Amazon Business', 
       date: new Date(Date.now() - 86400000).toISOString(), 
       status: 'En attente', 
@@ -60,6 +66,15 @@ const MOCK_DATA: AppData = {
   ],
   coachingRequests: [],
   collabRequests: [],
+};
+
+// --- GESTION DU PIN ADMIN ---
+export const getAdminPin = (): string => {
+  return localStorage.getItem(PIN_STORAGE_KEY) || '123456';
+};
+
+export const setAdminPin = (newPin: string) => {
+  localStorage.setItem(PIN_STORAGE_KEY, newPin);
 };
 
 export const getData = (): AppData => {
@@ -120,9 +135,30 @@ export const updateClient = (c: Client) => {
   return data;
 };
 
+export const deleteClient = (id: string) => {
+  const data = getData();
+  data.clients = data.clients.filter(c => c.id !== id);
+  saveData(data);
+  return data;
+};
+
 export const addSupplier = (s: Supplier) => {
   const data = getData();
   data.suppliers.push(s);
+  saveData(data);
+  return data;
+};
+
+export const updateSupplier = (s: Supplier) => {
+  const data = getData();
+  data.suppliers = data.suppliers.map(sup => sup.id === s.id ? s : sup);
+  saveData(data);
+  return data;
+};
+
+export const deleteSupplier = (id: string) => {
+  const data = getData();
+  data.suppliers = data.suppliers.filter(s => s.id !== id);
   saveData(data);
   return data;
 };
@@ -221,7 +257,6 @@ export const submitCollabRequest = (req: CollabRequest) => {
   return data;
 };
 
-// Fonction helper pour ajouter un RDV depuis le site public
 export const bookAppointment = (name: string, phone: string, date: Date, serviceName: string) => {
   const data = getData();
   
