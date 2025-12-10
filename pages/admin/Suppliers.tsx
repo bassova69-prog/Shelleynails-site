@@ -9,7 +9,7 @@ export const Suppliers: React.FC = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [activeTab, setActiveTab] = useState<'order' | 'tracking' | 'stock' | 'directory'>('directory'); // Default to directory to show list immediately
+  const [activeTab, setActiveTab] = useState<'order' | 'tracking' | 'stock' | 'directory'>('directory');
   const [searchTerm, setSearchTerm] = useState('');
   const [cart, setCart] = useState<Record<string, Record<string, number>>>({});
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
@@ -50,7 +50,7 @@ export const Suppliers: React.FC = () => {
       return { ...prev, [supplierId]: newSupplierCart };
     });
   };
-  const getQuantity = (supplierId: string, product: string) => cart[supplierId]?.[product] || 0;
+  const getQuantity = (supplierId: string, product: string): number => cart[supplierId]?.[product] || 0;
   
   const handleSaveSupplier = (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,7 +124,7 @@ export const Suppliers: React.FC = () => {
     const supplier = suppliers.find(s => s.id === supplierId);
     
     if (supplier && items) {
-        const orderItems: OrderItem[] = Object.entries(items).map(([name, quantity]) => ({ name, quantity }));
+        const orderItems: OrderItem[] = Object.entries(items).map(([name, quantity]) => ({ name, quantity: quantity as number }));
         
         // 1. Créer la commande interne (Suivi)
         const newOrder: Order = {
@@ -137,7 +137,8 @@ export const Suppliers: React.FC = () => {
             totalAmount: 0 
         };
         addOrder(newOrder);
-        setOrders(getData().orders);
+        // On rafraichit les données pour voir la commande apparaître
+        refreshData();
 
         // 2. Copier la liste des articles dans le presse-papier
         const itemsList = orderItems.map(i => `${i.quantity}x ${i.name}`).join('\n');
@@ -171,32 +172,43 @@ export const Suppliers: React.FC = () => {
   };
   
   const handleStatusChange = (order: Order, newStatus: 'En attente' | 'Livrée') => {
-      updateOrder({ ...order, status: newStatus });
-      setOrders(getData().orders);
+      const updated = updateOrder({ ...order, status: newStatus });
+      // Mise à jour directe de l'état local pour fluidité
+      setOrders(updated.orders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   };
 
-  const handleDeleteOrder = (id: string) => {
-      if(window.confirm("Supprimer cette commande de l'historique ?")) {
-          deleteOrder(id);
-          refreshData();
-      }
+  const handleDeleteOrder = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Empêche le clic de traverser
+    if (window.confirm("Supprimer cette commande du suivi ?")) {
+        const updated = deleteOrder(id);
+        // Mise à jour directe de l'état local pour supprimer visuellement l'élément
+        setOrders(updated.orders.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    }
   };
   
   const handleSaveStock = (productName: string) => {
     updateInventoryItem({ productName, quantity: editQty, threshold: editThreshold, lastUpdated: new Date().toISOString() });
-    setInventory(getData().inventory); setEditingItem(null);
+    setInventory(getData().inventory); 
+    setEditingItem(null);
   };
 
   // UI Logic
   const allProducts = suppliers.flatMap(s => s.products.map(p => ({ name: p, supplierId: s.id, supplierName: s.name })));
   const lowStockCount = allProducts.filter(p => { const i = inventory.find(i => i.productName === p.name); return (i ? i.quantity : 0) <= (i ? i.threshold : 2); }).length;
   const filteredStockProducts = allProducts.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && (stockSupplierFilter === 'all' || p.supplierId === stockSupplierFilter));
-  const totalItems = (Object.values(cart) as any[]).reduce((acc, c) => acc + Object.values(c).reduce((s:number, q:number) => s + q, 0), 0);
+  
+  const totalItems = (Object.values(cart) as Record<string, number>[]).reduce((acc: number, c: Record<string, number>) => {
+      return acc + (Object.values(c) as number[]).reduce((s: number, q: number) => s + q, 0);
+  }, 0);
   
   const filteredSuppliers = suppliers.filter(s => 
       s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       s.products.some(p => p.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Split Orders for Tracking
+  const pendingOrders = orders.filter(o => o.status === 'En attente');
+  const completedOrders = orders.filter(o => o.status === 'Livrée');
 
   return (
     <div className="space-y-8 pb-24">
@@ -354,9 +366,9 @@ export const Suppliers: React.FC = () => {
             {suppliers.map(supplier => {
                 const products = supplier.products.filter(p => p.toLowerCase().includes(searchTerm.toLowerCase()));
                 if (products.length === 0 && !supplier.name.toLowerCase().includes(searchTerm.toLowerCase())) return null;
-                const displayProducts = supplier.products; // Show all if supplier matches, otherwise filter
+                const displayProducts = supplier.products; 
                 
-                const qty = Object.values((cart[supplier.id] || {})).reduce((a:number, b:number) => a + b, 0);
+                const qty = (Object.values((cart[supplier.id] || {})) as number[]).reduce((a, b) => a + b, 0);
                 
                 return (
                     <div key={supplier.id} className="bg-white/40 backdrop-blur-xl rounded-2xl border border-white/40 overflow-hidden shadow-sm animate-in fade-in">
@@ -401,48 +413,92 @@ export const Suppliers: React.FC = () => {
 
       {/* --- TAB: SUIVI (TRACKING) --- */}
       {activeTab === 'tracking' && (
-          <div className="space-y-4 pb-24">
-              {orders.length === 0 ? (
-                  <div className="text-center p-10 text-stone-400 bg-white/40 rounded-[2rem]">Aucune commande en cours.</div>
-              ) : (
-                  orders.map(order => (
-                      <div key={order.id} className="bg-white/40 backdrop-blur-xl rounded-[2rem] border border-white/40 p-6 shadow-sm">
-                          <div className="flex justify-between items-start mb-4">
-                              <div>
-                                  <div className="flex items-center gap-2">
-                                      <h3 className="font-bold text-stone-900">{order.supplierName}</h3>
-                                      <span className="text-xs text-stone-500">{new Date(order.date).toLocaleDateString()}</span>
-                                  </div>
-                                  <div className="text-xs text-stone-500 mt-1">{order.items.length} références</div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <select 
-                                    value={order.status}
-                                    onChange={(e) => handleStatusChange(order, e.target.value as any)}
-                                    className={`text-xs font-bold px-3 py-1.5 rounded-lg border outline-none ${order.status === 'Livrée' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-yellow-100 text-yellow-700 border-yellow-200'}`}
-                                >
-                                    <option value="En attente">En attente</option>
-                                    <option value="Livrée">Reçue</option>
-                                </select>
-                                <button 
-                                    onClick={() => handleDeleteOrder(order.id)}
-                                    className="p-1.5 bg-white/50 text-stone-400 rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors shadow-sm border border-stone-200/50"
-                                    title="Supprimer"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                              </div>
-                          </div>
-                          <div className="space-y-1 pl-4 border-l-2 border-[#D4A373]/30">
-                              {order.items.map((item, i) => (
-                                  <div key={i} className="flex justify-between text-sm">
-                                      <span className="text-stone-700">{item.name}</span>
-                                      <span className="font-bold text-stone-900">x{item.quantity}</span>
-                                  </div>
-                              ))}
-                          </div>
-                      </div>
-                  ))
+          <div className="space-y-8 pb-24">
+              
+              {/* SECTION: EN COURS (PENDING) */}
+              <div>
+                <h3 className="font-bold text-stone-800 font-serif text-lg mb-4 flex items-center gap-2">
+                    <Truck size={18} className="text-[#D4A373]" /> En cours
+                </h3>
+                {pendingOrders.length === 0 ? (
+                    <div className="text-center p-10 text-stone-400 bg-white/40 rounded-[2rem] border border-white/40 border-dashed">
+                        Aucune commande en attente de réception.
+                    </div>
+                ) : (
+                    pendingOrders.map(order => (
+                        <div key={order.id} className="bg-white/40 backdrop-blur-xl rounded-[2rem] border border-white/40 p-6 shadow-sm mb-4">
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="font-bold text-stone-900">{order.supplierName}</h3>
+                                        <span className="text-xs text-stone-500">{new Date(order.date).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="text-xs text-stone-500 mt-1">{order.items.length} références</div>
+                                </div>
+                                <div className="flex items-center gap-2 relative z-10">
+                                    <select 
+                                        value={order.status}
+                                        onChange={(e) => handleStatusChange(order, e.target.value as any)}
+                                        className="text-xs font-bold px-3 py-1.5 rounded-lg border outline-none cursor-pointer bg-yellow-100 text-yellow-700 border-yellow-200"
+                                    >
+                                        <option value="En attente">En attente</option>
+                                        <option value="Livrée">Reçue</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div className="space-y-1 pl-4 border-l-2 border-[#D4A373]/30">
+                                {order.items.map((item, i) => (
+                                    <div key={i} className="flex justify-between text-sm">
+                                        <span className="text-stone-700">{item.name}</span>
+                                        <span className="font-bold text-stone-900">x{item.quantity}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))
+                )}
+              </div>
+
+              {/* SECTION: ARCHIVES (COMPLETED) */}
+              {completedOrders.length > 0 && (
+                  <div className="pt-8 border-t border-[#D4A373]/20">
+                    <h3 className="font-bold text-stone-400 font-serif text-lg mb-4 flex items-center gap-2">
+                        <Archive size={18} /> Historique (Reçues)
+                    </h3>
+                    <div className="space-y-4 opacity-70 grayscale-[0.5]">
+                        {completedOrders.map(order => (
+                            <div key={order.id} className="bg-white/20 backdrop-blur-sm rounded-[2rem] border border-white/20 p-6 shadow-sm">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-bold text-stone-700">{order.supplierName}</h3>
+                                            <span className="text-xs text-stone-400">{new Date(order.date).toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="text-xs text-stone-400 mt-1">{order.items.length} références</div>
+                                    </div>
+                                    <div className="flex items-center gap-2 relative z-10">
+                                        <select 
+                                            value={order.status}
+                                            onChange={(e) => handleStatusChange(order, e.target.value as any)}
+                                            className="text-xs font-bold px-3 py-1.5 rounded-lg border outline-none cursor-pointer bg-green-100 text-green-700 border-green-200"
+                                        >
+                                            <option value="En attente">En attente</option>
+                                            <option value="Livrée">Reçue</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="space-y-1 pl-4 border-l-2 border-stone-300">
+                                    {order.items.map((item, i) => (
+                                        <div key={i} className="flex justify-between text-sm">
+                                            <span className="text-stone-500">{item.name}</span>
+                                            <span className="font-bold text-stone-600">x{item.quantity}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                  </div>
               )}
           </div>
       )}
@@ -483,7 +539,7 @@ export const Suppliers: React.FC = () => {
                     {Object.entries(cart).map(([supplierId, items]) => {
                          const supplier = suppliers.find(s => s.id === supplierId);
                          if (!supplier) return null;
-                         const totalItemsCount = Object.values(items).reduce((a, b) => a + b, 0);
+                         const totalItemsCount = (Object.values(items) as number[]).reduce((a, b) => a + b, 0);
 
                          return (
                              <div key={supplierId} className="bg-stone-50 rounded-2xl p-5 border border-stone-200">

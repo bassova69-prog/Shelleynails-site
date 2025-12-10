@@ -180,8 +180,30 @@ export const deleteGiftCard = (id: string) => {
 export const toggleGiftCardRedeemed = (id: string) => {
   const data = getData();
   const cardIndex = data.giftCards.findIndex(g => g.id === id);
+  
   if (cardIndex !== -1) {
-    data.giftCards[cardIndex].isRedeemed = !data.giftCards[cardIndex].isRedeemed;
+    const card = data.giftCards[cardIndex];
+
+    // Si la carte est déjà utilisée, on ne permet pas de revenir en arrière
+    if (card.isRedeemed) {
+      return data;
+    }
+
+    // Passage au statut Utilisée (irréversible via cette fonction)
+    data.giftCards[cardIndex].isRedeemed = true;
+
+    // --- AUTOMATISATION COMPTABILITÉ ---
+    // On crée une transaction d'encaissement uniquement lors du passage à 'Utilisée'
+    const newTx: Transaction = {
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        amount: card.amount,
+        type: 'Carte Cadeaux',
+        category: 'Prestation', // Par défaut
+        description: `Encaissement Carte Cadeau ${card.code} (de ${card.from} pour ${card.to})`
+    };
+    data.transactions.push(newTx);
+
     saveData(data);
   }
   return data;

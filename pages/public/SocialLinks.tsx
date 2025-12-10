@@ -120,94 +120,102 @@ export const SocialLinks: React.FC = () => {
                 </div>
             </div>
 
-            {/* Scroll Container */}
-            <div 
-                ref={scrollRef}
-                className="flex overflow-x-auto pb-4 gap-4 snap-x snap-mandatory scroll-smooth px-[7.5vw] items-start w-full no-scrollbar"
-            >
-                {PRICING.map((cat, idx) => (
-                    <div 
-                        key={idx} 
-                        className="snap-center shrink-0 w-[85vw] max-w-[340px] flex items-start justify-center mx-auto"
-                    >
-                        {/* Carte Style "Tarifs" */}
-                        <div className="bg-[#8C867D]/95 backdrop-blur-sm rounded-[2rem] border border-stone-600 shadow-xl p-6 w-full relative overflow-hidden flex flex-col h-auto text-[#EBE8E3]">
-                            
-                            <div className="absolute inset-0 opacity-10 pointer-events-none">
-                                <svg viewBox="0 0 100 100" className="w-full h-full fill-none stroke-black stroke-[0.5]">
-                                    <path d="M50 0 Q 20 50 50 100 Q 80 50 50 0" />
-                                </svg>
-                            </div>
-
-                            <div className="w-full flex flex-col relative z-10">
-                                <h3 className="font-serif font-bold text-sm uppercase tracking-widest text-[#CDC8BE] mb-6 text-center border-b border-[#CDC8BE]/30 pb-2">
-                                    {cat.category}
-                                </h3>
+            {/* Carousel Container with Absolute Arrows */}
+            <div className="relative w-full">
+                {/* Scroll Container */}
+                <div 
+                    ref={scrollRef}
+                    className="flex overflow-x-auto pb-4 gap-4 snap-x snap-mandatory scroll-smooth px-[7.5vw] items-start w-full no-scrollbar"
+                >
+                    {PRICING.map((cat, idx) => (
+                        <div 
+                            key={idx} 
+                            className="snap-center shrink-0 w-[85vw] max-w-[340px] flex items-start justify-center mx-auto"
+                        >
+                            {/* Carte Style "Tarifs" */}
+                            <div className="bg-[#8C867D]/95 backdrop-blur-sm rounded-[2rem] border border-stone-600 shadow-xl p-6 w-full relative overflow-hidden flex flex-col h-auto text-[#EBE8E3]">
                                 
-                                <div className="space-y-5 w-full">
-                                    {cat.items.map((item, i) => (
-                                        <div key={i} className="group/item w-full">
-                                            {cat.type === 'info' ? (
-                                                <div className="flex flex-col w-full">
-                                                    <div className="mb-2">
-                                                        <span className="font-gothic text-2xl text-white tracking-wide">
-                                                            {item.name}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-[#CDC8BE] font-serif leading-relaxed text-justify w-full break-words">
-                                                        {item.details}
-                                                    </p>
-                                                    {(item as any).action && (
-                                                        <a 
-                                                            href={(item as any).action.link}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="mt-6 w-full py-3 bg-[#CDC8BE] text-[#4A4A4A] font-bold uppercase tracking-widest rounded-xl text-center hover:bg-white transition-colors block shadow-md text-xs"
-                                                        >
-                                                            {(item as any).action.label}
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-col w-full">
-                                                    <div className="flex justify-between items-baseline mb-1 gap-2 w-full">
-                                                        <span className="font-serif font-medium text-lg text-white leading-tight tracking-wide">
-                                                            {item.name}
-                                                        </span>
-                                                        <div className="flex-1 border-b border-dashed border-[#CDC8BE]/40 mx-2 mb-1"></div>
-                                                        <span className="font-gothic text-xl text-white whitespace-nowrap shrink-0">
-                                                            {item.price}{item.price && isPriceNumber(item.price) && "€"}
-                                                        </span>
-                                                    </div>
-                                                    {item.details && (
-                                                        <p className="text-[10px] text-[#CDC8BE] italic opacity-80 pl-1">
+                                <div className="absolute inset-0 opacity-10 pointer-events-none">
+                                    <svg viewBox="0 0 100 100" className="w-full h-full fill-none stroke-black stroke-[0.5]">
+                                        <path d="M50 0 Q 20 50 50 100 Q 80 50 50 0" />
+                                    </svg>
+                                </div>
+
+                                <div className="w-full flex flex-col relative z-10">
+                                    <h3 className="font-serif font-bold text-sm uppercase tracking-widest text-[#CDC8BE] mb-6 text-center border-b border-[#CDC8BE]/30 pb-2">
+                                        {cat.category}
+                                    </h3>
+                                    
+                                    <div className="space-y-5 w-full">
+                                        {cat.items.map((item, i) => (
+                                            <div key={i} className="group/item w-full">
+                                                {cat.type === 'info' ? (
+                                                    <div className="flex flex-col w-full">
+                                                        <div className="mb-2">
+                                                            <span className="font-gothic text-2xl text-white tracking-wide">
+                                                                {item.name}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-sm text-[#CDC8BE] font-serif leading-relaxed text-justify w-full break-words">
                                                             {item.details}
                                                         </p>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+                                                        {(item as any).action && (
+                                                            <a 
+                                                                href={(item as any).action.link}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="mt-6 w-full py-3 bg-[#CDC8BE] text-[#4A4A4A] font-bold uppercase tracking-widest rounded-xl text-center hover:bg-white transition-colors block shadow-md text-xs"
+                                                            >
+                                                                {(item as any).action.label}
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col w-full">
+                                                        <div className="flex justify-between items-baseline mb-1 gap-2 w-full">
+                                                            <span className="font-serif font-medium text-lg text-white leading-tight tracking-wide">
+                                                                {item.name}
+                                                            </span>
+                                                            <div className="flex-1 border-b border-dashed border-[#CDC8BE]/40 mx-2 mb-1"></div>
+                                                            <span className="font-gothic text-xl text-white whitespace-nowrap shrink-0">
+                                                                {item.price}{item.price && isPriceNumber(item.price) && "€"}
+                                                            </span>
+                                                        </div>
+                                                        {item.details && (
+                                                            <p className="text-[10px] text-[#CDC8BE] italic opacity-80 pl-1">
+                                                                {item.details}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
 
-            <div className="flex justify-center items-center gap-8 mt-2 opacity-60 hover:opacity-100 transition-opacity">
-                <button 
-                    onClick={() => scroll('left')}
-                    className="p-2 text-stone-700 hover:scale-125 transition-transform"
-                >
-                    <ChevronLeft size={24} />
-                </button>
-                <button 
-                    onClick={() => scroll('right')}
-                    className="p-2 text-stone-700 hover:scale-125 transition-transform"
-                >
-                    <ChevronRight size={24} />
-                </button>
+                {/* Left Arrow */}
+                <div className="absolute inset-y-0 left-0 flex items-center pl-1 sm:pl-2 pointer-events-none z-20">
+                    <button 
+                        onClick={() => scroll('left')}
+                        className="p-2 sm:p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/30 transition-all shadow-lg pointer-events-auto active:scale-95"
+                    >
+                        <ChevronLeft size={24} />
+                    </button>
+                </div>
+
+                {/* Right Arrow */}
+                <div className="absolute inset-y-0 right-0 flex items-center pr-1 sm:pr-2 pointer-events-none z-20">
+                    <button 
+                        onClick={() => scroll('right')}
+                        className="p-2 sm:p-3 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/30 transition-all shadow-lg pointer-events-auto active:scale-95"
+                    >
+                        <ChevronRight size={24} />
+                    </button>
+                </div>
             </div>
         </div>
 
