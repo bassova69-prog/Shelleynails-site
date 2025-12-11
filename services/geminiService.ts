@@ -51,10 +51,20 @@ export const analyzeRevenue = async (transactions: any[]): Promise<string> => {
   const ai = getAi();
   if (!ai) return "Clé API manquante.";
 
+  // SÉCURITÉ : On nettoie les transactions pour ne garder que les données simples
+  // Cela évite l'erreur "Converting circular structure to JSON" si un objet complexe s'est glissé dans le tableau
+  const safeTransactions = transactions.slice(-10).map(t => ({
+      date: t.date,
+      amount: t.amount,
+      type: t.type,
+      category: t.category,
+      description: t.description
+  }));
+
   const prompt = `
     Analyse ces transactions financières pour mon salon de manucure (Shelleynailss) et donne-moi un bref conseil ou une observation positive (max 2 phrases).
     Adresse-toi directement à moi (Shelley).
-    Données: ${JSON.stringify(transactions.slice(-10))}
+    Données: ${JSON.stringify(safeTransactions)}
   `;
 
   try {
@@ -64,6 +74,7 @@ export const analyzeRevenue = async (transactions: any[]): Promise<string> => {
     });
     return response.text || "Tes revenus sont stables. Continue comme ça Shelley !";
   } catch (error) {
+    console.error("Error analyzing revenue:", error);
     return "Impossible d'analyser les données pour le moment.";
   }
 };

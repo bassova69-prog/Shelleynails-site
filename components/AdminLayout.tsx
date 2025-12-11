@@ -8,6 +8,9 @@ interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
+// URL de l'image de fond (extension .png)
+const BACKGROUND_URL = "https://raw.githubusercontent.com/bassova69-prog/Shelleynails-site/main/fond.png?v=bg_update_png";
+
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
@@ -48,26 +51,15 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  // --- BACKGROUND DUO (MARBRE + SOIE) - IDENTIQUE PUBLIC LAYOUT ---
+  // --- BACKGROUND IMAGE ---
   const BackgroundLayer = () => (
     <div className="fixed inset-0 z-0 bg-[#E6E4E1] pointer-events-none">
-          {/* 1. Base Layer: Neutral Taupe/Grey Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#E8E6E3] via-[#DCD9D5] to-[#C8C4BC]"></div>
-
-          {/* 2. Fluid Marble Texture (SVG Turbulence) */}
-          <div 
-            className="absolute inset-0 opacity-30 mix-blend-overlay"
-            style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 500 500' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='marbleFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.004' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23marbleFilter)'/%3E%3C/svg%3E")`,
-                filter: 'contrast(110%)',
-            }}
-          ></div>
-
-          {/* 3. Silk Folds Simulation */}
-          <div className="absolute inset-0 opacity-60 mix-blend-soft-light overflow-hidden">
-             <div className="absolute w-[200%] h-[200%] top-[-50%] left-[-50%] bg-gradient-to-tr from-transparent via-white to-transparent blur-[80px] transform rotate-12 opacity-80"></div>
-             <div className="absolute w-[200%] h-[200%] top-[-50%] left-[-50%] bg-gradient-to-br from-transparent via-white to-transparent blur-[100px] transform -rotate-12 translate-y-32 opacity-60"></div>
-          </div>
+          <img 
+            src={BACKGROUND_URL}
+            alt="" 
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-white/10 mix-blend-overlay"></div>
     </div>
   );
 

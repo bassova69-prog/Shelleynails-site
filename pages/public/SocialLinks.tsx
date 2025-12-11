@@ -1,12 +1,11 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, Instagram, GraduationCap, ShoppingCart, Video, Lock, ChevronLeft, ChevronRight, Mail } from 'lucide-react';
 import { PublicLayout } from '../../components/PublicLayout';
 
 // --- CONFIGURATION LOGO ---
-// CORRECTION VERCEL : Utilisation du lien stable vers la branche 'main'.
-// Ce lien ne fonctionne que si le projet GitHub est PUBLIC.
+// Mise à jour avec le lien fourni : https://raw.githubusercontent.com/bassova69-prog/Shelleynails-site/refs/heads/main/logo.png
 const LOGO_SOURCE = "https://raw.githubusercontent.com/bassova69-prog/Shelleynails-site/refs/heads/main/logo.png"; 
 
 const PRICING = [
@@ -42,7 +41,6 @@ const PRICING = [
 
 export const SocialLinks: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [imageError, setImageError] = useState(false);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
@@ -75,36 +73,16 @@ export const SocialLinks: React.FC = () => {
           <div className="relative z-10 flex flex-col items-center mt-4 mb-12">
             
             {/* LOGIQUE D'AFFICHAGE DU LOGO / PHOTO DE PROFIL */}
-            {/* J'ai ajusté la taille (w-48 h-48) pour que ça fasse une belle photo de profil ronde */}
             <div className="w-48 h-48 mx-auto mb-6 relative group flex items-center justify-center">
-                 
-                 {/* Si LOGO_SOURCE est rempli ET qu'il n'y a pas d'erreur, on affiche l'image */}
-                 {LOGO_SOURCE && !imageError ? (
-                     <>
-                        {/* Effet de lueur colorée derrière la photo */}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-[#D4A373] to-[#E1306C] rounded-full blur-xl opacity-40 group-hover:opacity-60 transition-all duration-500 animate-pulse"></div>
-                        
-                        <img 
-                            src={LOGO_SOURCE} 
-                            alt="Shelley Nails" 
-                            className="relative z-10 w-full h-full object-cover rounded-full border-[3px] border-white/80 shadow-2xl hover:scale-105 transition-transform duration-500"
-                            onError={() => setImageError(true)}
-                        />
-                     </>
-                 ) : (
-                     /* FALLBACK : Si pas d'image, on affiche le titre texte stylisé */
-                     <div className="animate-in fade-in duration-500 flex flex-col items-center gap-2">
-                        <div className="w-16 h-16 rounded-full border border-stone-400/30 flex items-center justify-center bg-stone-100/50 backdrop-blur-sm shadow-sm mb-2">
-                            <Sparkles size={24} className="text-[#A8A29E]" />
-                        </div>
-                        <h1 
-                            className="text-6xl font-knife tracking-wide leading-none"
-                            style={titleStyle}
-                        >
-                            Shelley<br/>Nails
-                        </h1>
-                     </div>
-                 )}
+                 {/* Effet de lueur colorée derrière la photo */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-[#D4A373] to-[#E1306C] rounded-full blur-xl opacity-40 group-hover:opacity-60 transition-all duration-500 animate-pulse"></div>
+                
+                {/* IMAGE DU LOGO */}
+                <img 
+                    src={LOGO_SOURCE} 
+                    alt="Shelley Nails" 
+                    className="relative z-10 w-full h-full object-cover rounded-full border-[3px] border-white/80 shadow-2xl hover:scale-105 transition-transform duration-500"
+                />
             </div>
 
             <h1 className="font-knife text-4xl text-stone-800 tracking-wide mt-2 mb-1" style={titleStyle}>Shelley Nails</h1>

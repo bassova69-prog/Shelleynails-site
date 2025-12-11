@@ -1,5 +1,4 @@
 
-
 import { AppData, Client, Transaction, Supplier, GiftCard, Order, TaxDeclaration, InventoryItem, CoachingRequest, CollabRequest } from '../types';
 
 const STORAGE_KEY = 'shelleynails_data_v6';
@@ -83,24 +82,59 @@ export const getData = (): AppData => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(MOCK_DATA));
     return MOCK_DATA;
   }
-  const data = JSON.parse(stored);
-  
-  // Migrations
-  if (!data.taxDeclarations) data.taxDeclarations = MOCK_DATA.taxDeclarations;
-  if (!data.inventory) data.inventory = MOCK_DATA.inventory;
-  if (!data.coachingRequests) data.coachingRequests = [];
-  if (!data.collabRequests) data.collabRequests = [];
-  if (data.notifications) delete data.notifications; // Cleanup
-  
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  return data;
+  try {
+    const data = JSON.parse(stored);
+    
+    // Migrations
+    if (!data.taxDeclarations) data.taxDeclarations = MOCK_DATA.taxDeclarations;
+    if (!data.inventory) data.inventory = MOCK_DATA.inventory;
+    if (!data.coachingRequests) data.coachingRequests = [];
+    if (!data.collabRequests) data.collabRequests = [];
+    if (data.notifications) delete data.notifications; // Cleanup
+    
+    return data;
+  } catch (e) {
+    console.error("Erreur parsing data, reset", e);
+    return MOCK_DATA;
+  }
 };
 
 export const saveData = (data: AppData) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  try {
+    // SÉCURITÉ RENFORCÉE : 
+    // Nettoyage des objets circulaires ou DOM Elements (ex: HTMLImageElement)
+    // Ajout de la vérification nodeType pour les éléments HTML
+    const safeData = JSON.stringify(data, (key, value) => {
+        if (value && (
+            value instanceof Element || 
+            value.nodeType === 1 || // Check DOM Element Node
+            typeof value.preventDefault === 'function' || 
+            value._reactName
+        )) {
+            return undefined; // On exclut les événements et éléments DOM
+        }
+        return value;
+    });
+    localStorage.setItem(STORAGE_KEY, safeData);
+  } catch (e) {
+    console.error("Erreur critique lors de la sauvegarde (Structure circulaire détectée):", e);
+  }
+};
+
+// Helper pour vérifier qu'on ne passe pas un évènement React à la place d'un objet
+const isEvent = (obj: any): boolean => {
+    return obj && (
+        obj.preventDefault || 
+        obj.stopPropagation || 
+        obj.target || 
+        obj._reactName || 
+        obj instanceof Element ||
+        obj.nodeType === 1
+    );
 };
 
 export const addTransaction = (t: Transaction) => {
+  if (isEvent(t)) { console.error("Invalid transaction object (Event detected)", t); return getData(); }
   const data = getData();
   data.transactions.push(t);
   saveData(data);
@@ -108,6 +142,7 @@ export const addTransaction = (t: Transaction) => {
 };
 
 export const updateTransaction = (t: Transaction) => {
+  if (isEvent(t)) return getData();
   const data = getData();
   data.transactions = data.transactions.map(tr => tr.id === t.id ? t : tr);
   saveData(data);
@@ -122,6 +157,7 @@ export const deleteTransaction = (id: string) => {
 };
 
 export const addClient = (c: Client) => {
+  if (isEvent(c)) { console.error("Invalid client object (Event detected)", c); return getData(); }
   const data = getData();
   data.clients.push(c);
   saveData(data);
@@ -129,6 +165,7 @@ export const addClient = (c: Client) => {
 };
 
 export const updateClient = (c: Client) => {
+  if (isEvent(c)) return getData();
   const data = getData();
   data.clients = data.clients.map(client => client.id === c.id ? c : client);
   saveData(data);
@@ -143,6 +180,7 @@ export const deleteClient = (id: string) => {
 };
 
 export const addSupplier = (s: Supplier) => {
+  if (isEvent(s)) return getData();
   const data = getData();
   data.suppliers.push(s);
   saveData(data);
@@ -150,6 +188,7 @@ export const addSupplier = (s: Supplier) => {
 };
 
 export const updateSupplier = (s: Supplier) => {
+  if (isEvent(s)) return getData();
   const data = getData();
   data.suppliers = data.suppliers.map(sup => sup.id === s.id ? s : sup);
   saveData(data);
@@ -164,6 +203,7 @@ export const deleteSupplier = (id: string) => {
 };
 
 export const addGiftCard = (g: GiftCard) => {
+  if (isEvent(g)) return getData();
   const data = getData();
   data.giftCards.push(g);
   saveData(data);
@@ -210,6 +250,7 @@ export const toggleGiftCardRedeemed = (id: string) => {
 };
 
 export const addOrder = (o: Order) => {
+  if (isEvent(o)) return getData();
   const data = getData();
   data.orders.push(o);
   saveData(data);
@@ -217,6 +258,7 @@ export const addOrder = (o: Order) => {
 };
 
 export const updateOrder = (o: Order) => {
+  if (isEvent(o)) return getData();
   const data = getData();
   data.orders = data.orders.map(order => order.id === o.id ? o : order);
   saveData(data);
@@ -231,6 +273,7 @@ export const deleteOrder = (id: string) => {
 };
 
 export const addTaxDeclaration = (tax: TaxDeclaration) => {
+  if (isEvent(tax)) return getData();
   const data = getData();
   data.taxDeclarations.push(tax);
   saveData(data);
@@ -238,6 +281,7 @@ export const addTaxDeclaration = (tax: TaxDeclaration) => {
 };
 
 export const updateTaxDeclaration = (tax: TaxDeclaration) => {
+  if (isEvent(tax)) return getData();
   const data = getData();
   data.taxDeclarations = data.taxDeclarations.map(d => d.id === tax.id ? tax : d);
   saveData(data);
@@ -252,6 +296,7 @@ export const deleteTaxDeclaration = (id: string) => {
 };
 
 export const updateInventoryItem = (item: InventoryItem) => {
+  if (isEvent(item)) return getData();
   const data = getData();
   const existingIndex = data.inventory.findIndex(i => i.productName === item.productName);
   
@@ -266,6 +311,7 @@ export const updateInventoryItem = (item: InventoryItem) => {
 };
 
 export const submitCoachingRequest = (req: CoachingRequest) => {
+  if (isEvent(req)) return getData();
   const data = getData();
   data.coachingRequests.push(req);
   saveData(data);
@@ -273,6 +319,7 @@ export const submitCoachingRequest = (req: CoachingRequest) => {
 };
 
 export const submitCollabRequest = (req: CollabRequest) => {
+  if (isEvent(req)) return getData();
   const data = getData();
   data.collabRequests.push(req);
   saveData(data);
