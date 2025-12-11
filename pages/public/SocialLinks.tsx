@@ -56,15 +56,6 @@ export const SocialLinks: React.FC = () => {
 
   const isPriceNumber = (val: string) => !isNaN(Number(val)) && val !== '';
 
-  // Style du titre texte (Fallback)
-  const titleStyle = {
-      background: 'linear-gradient(to bottom, #F5F5F4 0%, #A8A29E 45%, #57534E 50%, #A8A29E 100%)',
-      WebkitBackgroundClip: 'text',
-      WebkitTextFillColor: 'transparent',
-      filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.4))',
-      WebkitTextStroke: '1px #44403C',
-  };
-
   return (
     <PublicLayout>
         {/* --- HEADER PROFILE GOTHIC / Y2K --- */}
@@ -85,7 +76,11 @@ export const SocialLinks: React.FC = () => {
                 />
             </div>
 
-            <h1 className="font-knife text-4xl text-stone-800 tracking-wide mt-2 mb-1" style={titleStyle}>Shelley Nails</h1>
+            {/* TITRE PRINCIPAL - STYLE COACHING (Gothic + Scale + Tracking) */}
+            <h1 className="font-gothic text-5xl text-stone-800 tracking-widest mt-2 mb-1 transform scale-y-110">
+                Shelley Nails
+            </h1>
+            
             <p className="font-serif italic text-lg text-stone-600 font-medium tracking-wide">Nail Artist & Coach Individuel</p>
             
             {/* --- SOCIAL HUB --- */}

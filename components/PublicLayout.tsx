@@ -29,7 +29,7 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
         
             {/* Signature bas de page */}
             <div className="mt-12 mb-6 text-center opacity-60 mix-blend-hard-light">
-                <span className="font-knife text-xl text-stone-800 tracking-widest drop-shadow-sm">Shelley Nails Art</span>
+                <span className="font-gothic text-2xl text-stone-800 tracking-widest drop-shadow-sm transform scale-y-110 inline-block">Shelley Nails Art</span>
             </div>
         </div>
       </div>

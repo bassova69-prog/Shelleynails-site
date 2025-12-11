@@ -87,7 +87,7 @@ export const Dashboard: React.FC = () => {
       <div className="space-y-8">
         <div>
             <h1 
-                className="text-5xl font-knife tracking-wide"
+                className="text-5xl font-gothic tracking-widest transform scale-y-110"
                 style={{
                     background: 'linear-gradient(to bottom, #F5F5F4 0%, #A8A29E 45%, #57534E 50%, #A8A29E 100%)',
                     WebkitBackgroundClip: 'text',

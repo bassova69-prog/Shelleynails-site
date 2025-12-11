@@ -1,8 +1,4 @@
 
-
-
-
-
 import React, { useState, useEffect } from 'react';
 import { getData, addGiftCard, deleteGiftCard, toggleGiftCardRedeemed } from '../../services/storage';
 import { GiftCard } from '../../types';
@@ -142,7 +138,7 @@ https://ig.me/m/shelleynailss
     <div className="space-y-8 pb-12">
       <div>
             <h1 
-                className="text-5xl font-knife tracking-wide"
+                className="text-5xl font-gothic tracking-widest transform scale-y-110"
                 style={{
                     background: 'linear-gradient(to bottom, #F5F5F4 0%, #A8A29E 45%, #57534E 50%, #A8A29E 100%)',
                     WebkitBackgroundClip: 'text',
@@ -241,7 +237,7 @@ https://ig.me/m/shelleynailss
                                         <span className="text-xl font-bold uppercase tracking-[0.4em] text-stone-600 drop-shadow-sm">Carte Cadeau</span>
                                         <Sparkles size={24} fill="#D4A373" />
                                     </div>
-                                    <h3 className="font-knife text-6xl text-stone-800 tracking-wide drop-shadow-sm mt-2" style={{ WebkitTextStroke: '0.5px #A8A29E' }}>
+                                    <h3 className="font-gothic text-6xl text-stone-800 tracking-widest drop-shadow-sm mt-2 transform scale-y-110" style={{ WebkitTextStroke: '0.5px #A8A29E' }}>
                                         Shelley Nails
                                     </h3>
                                 </div>

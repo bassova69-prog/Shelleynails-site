@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { getData, addTransaction, addTaxDeclaration, deleteTransaction, updateTransaction, deleteOrder, updateOrder, deleteTaxDeclaration, updateTaxDeclaration } from '../../services/storage';
 import { Transaction, TaxDeclaration, Order } from '../../types';
@@ -132,7 +131,7 @@ export const Accounting: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 border-b border-[#D4A373]/30 pb-4">
         <div>
             <h1 
-                className="text-5xl font-knife tracking-wide"
+                className="text-5xl font-gothic tracking-widest transform scale-y-110"
                 style={{
                     background: 'linear-gradient(to bottom, #F5F5F4 0%, #A8A29E 45%, #57534E 50%, #A8A29E 100%)',
                     WebkitBackgroundClip: 'text',

@@ -87,7 +87,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     </div>
                     
                     <h1 
-                        className="text-5xl font-knife mb-2 tracking-wide"
+                        className="text-5xl font-gothic mb-2 tracking-widest transform scale-y-110"
                         style={titleStyle}
                     >
                         Espace Pro
@@ -151,7 +151,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           <div className="p-8 flex items-center justify-between">
             <div>
                 <h1 
-                    className="text-4xl font-knife tracking-wide leading-none"
+                    className="text-4xl font-gothic tracking-widest leading-none transform scale-y-110"
                     style={titleStyle}
                 >
                     Shelley<br/>Nails
@@ -225,7 +225,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             <Menu size={24} />
           </button>
           <span 
-              className="font-knife text-2xl tracking-wide"
+              className="font-gothic text-3xl tracking-widest transform scale-y-110"
               style={titleStyle}
           >
               Shelley Nails
