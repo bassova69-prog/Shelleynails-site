@@ -5,8 +5,9 @@ import { Sparkles, Instagram, GraduationCap, ShoppingCart, Video, Lock, ChevronL
 import { PublicLayout } from '../../components/PublicLayout';
 
 // --- CONFIGURATION LOGO ---
-// J'ai changé le "?v=..." pour forcer le navigateur à re-télécharger l'image.
-const LOGO_SOURCE = "https://raw.githubusercontent.com/bassova69-prog/Shelleynails-site/5149c5e0ef42162041ef2e75362f14c3bfa4f46f/logo.png?token=B2XT3TYBINVXYDHLKMSUJ4TJHMAWC"; 
+// CORRECTION VERCEL : Utilisation du lien stable vers la branche 'main'.
+// Ce lien ne fonctionne que si le projet GitHub est PUBLIC.
+const LOGO_SOURCE = "https://raw.githubusercontent.com/bassova69-prog/Shelleynails-site/refs/heads/main/logo.png"; 
 
 const PRICING = [
     { category: 'Les Extensions', type: 'pricing', items: [
