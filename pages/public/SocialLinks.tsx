@@ -58,49 +58,17 @@ export const SocialLinks: React.FC = () => {
         <div className="text-center space-y-1 pt-16 pb-8 animate-in fade-in slide-in-from-top-4 duration-1000">
           
           <div className="relative z-10 flex flex-col items-center mt-4 mb-12">
-            {/* LOGO MIXED TYPOGRAPHY - Gothic Premium 3D */}
-            <div className="relative inline-block text-center transform scale-[0.85] sm:scale-[1.0] origin-center">
-                
-                {/* ROW 1: Shelley - New Rocker (Knife Style) */}
-                <div className="relative z-10">
-                    <h1 
-                        className="font-knife text-[5.5rem] sm:text-[7.5rem] leading-[0.8] tracking-wider"
-                        style={{
-                            // Base gradient fill for metallic look
-                            background: 'linear-gradient(to bottom, #F5F5F4 0%, #A8A29E 45%, #57534E 50%, #A8A29E 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            // Drop shadow for 3D lift
-                            filter: 'drop-shadow(0px 4px 6px rgba(0,0,0,0.6))',
-                            // Stroke simulation for definition
-                            WebkitTextStroke: '1.5px #44403C',
-                        }}
-                    >
-                        Shelley
-                    </h1>
-                </div>
-
-                {/* ROW 2: Nails - New Rocker (Knife Style) */}
-                <div 
-                    className="flex items-center justify-end w-full mt-[-0.5rem] pr-2"
-                >
-                    <span 
-                        className="font-knife text-[2.5rem] sm:text-[3.5rem] leading-none tracking-widest block"
-                        style={{ 
-                            background: 'linear-gradient(to bottom, #F5F5F4 0%, #A8A29E 45%, #57534E 50%, #A8A29E 100%)',
-                            WebkitBackgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            filter: 'drop-shadow(0px 4px 6px rgba(0,0,0,0.6))',
-                            WebkitTextStroke: '1px #44403C',
-                        }}
-                    >
-                        Nails
-                    </span>
-                </div>
-
+            
+            {/* LOGO IMAGE - Force l'affichage du fichier logo.png */}
+            <div className="w-full max-w-[280px] sm:max-w-[320px] mx-auto mb-6 px-4">
+                 <img 
+                    src="logo.png" 
+                    alt="Shelley Nails" 
+                    className="w-full h-auto object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500"
+                 />
             </div>
 
-            <p className="font-serif italic text-lg text-stone-600 mt-6 font-medium tracking-wide">Nail Artist & Coach Individuel</p>
+            <p className="font-serif italic text-lg text-stone-600 mt-2 font-medium tracking-wide">Nail Artist & Coach Individuel</p>
             
             {/* --- SOCIAL HUB --- */}
             <div className="flex justify-center gap-6 pt-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
