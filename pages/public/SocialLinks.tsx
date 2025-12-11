@@ -1,8 +1,12 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, Instagram, GraduationCap, ShoppingCart, Video, Lock, ChevronLeft, ChevronRight, Mail } from 'lucide-react';
 import { PublicLayout } from '../../components/PublicLayout';
+
+// --- CONFIGURATION LOGO ---
+// J'ai changé le "?v=..." pour forcer le navigateur à re-télécharger l'image.
+const LOGO_SOURCE = "https://raw.githubusercontent.com/bassova69-prog/Shelleynails-site/5149c5e0ef42162041ef2e75362f14c3bfa4f46f/logo.png?token=B2XT3TYBINVXYDHLKMSUJ4TJHMAWC"; 
 
 const PRICING = [
     { category: 'Les Extensions', type: 'pricing', items: [
@@ -37,6 +41,7 @@ const PRICING = [
 
 export const SocialLinks: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [imageError, setImageError] = useState(false);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
@@ -52,6 +57,15 @@ export const SocialLinks: React.FC = () => {
 
   const isPriceNumber = (val: string) => !isNaN(Number(val)) && val !== '';
 
+  // Style du titre texte (Fallback)
+  const titleStyle = {
+      background: 'linear-gradient(to bottom, #F5F5F4 0%, #A8A29E 45%, #57534E 50%, #A8A29E 100%)',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.4))',
+      WebkitTextStroke: '1px #44403C',
+  };
+
   return (
     <PublicLayout>
         {/* --- HEADER PROFILE GOTHIC / Y2K --- */}
@@ -59,16 +73,41 @@ export const SocialLinks: React.FC = () => {
           
           <div className="relative z-10 flex flex-col items-center mt-4 mb-12">
             
-            {/* LOGO IMAGE - Force l'affichage du fichier logo.png */}
-            <div className="w-full max-w-[280px] sm:max-w-[320px] mx-auto mb-6 px-4">
-                 <img 
-                    src="logo.png" 
-                    alt="Shelley Nails" 
-                    className="w-full h-auto object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500"
-                 />
+            {/* LOGIQUE D'AFFICHAGE DU LOGO / PHOTO DE PROFIL */}
+            {/* J'ai ajusté la taille (w-48 h-48) pour que ça fasse une belle photo de profil ronde */}
+            <div className="w-48 h-48 mx-auto mb-6 relative group flex items-center justify-center">
+                 
+                 {/* Si LOGO_SOURCE est rempli ET qu'il n'y a pas d'erreur, on affiche l'image */}
+                 {LOGO_SOURCE && !imageError ? (
+                     <>
+                        {/* Effet de lueur colorée derrière la photo */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-[#D4A373] to-[#E1306C] rounded-full blur-xl opacity-40 group-hover:opacity-60 transition-all duration-500 animate-pulse"></div>
+                        
+                        <img 
+                            src={LOGO_SOURCE} 
+                            alt="Shelley Nails" 
+                            className="relative z-10 w-full h-full object-cover rounded-full border-[3px] border-white/80 shadow-2xl hover:scale-105 transition-transform duration-500"
+                            onError={() => setImageError(true)}
+                        />
+                     </>
+                 ) : (
+                     /* FALLBACK : Si pas d'image, on affiche le titre texte stylisé */
+                     <div className="animate-in fade-in duration-500 flex flex-col items-center gap-2">
+                        <div className="w-16 h-16 rounded-full border border-stone-400/30 flex items-center justify-center bg-stone-100/50 backdrop-blur-sm shadow-sm mb-2">
+                            <Sparkles size={24} className="text-[#A8A29E]" />
+                        </div>
+                        <h1 
+                            className="text-6xl font-knife tracking-wide leading-none"
+                            style={titleStyle}
+                        >
+                            Shelley<br/>Nails
+                        </h1>
+                     </div>
+                 )}
             </div>
 
-            <p className="font-serif italic text-lg text-stone-600 mt-2 font-medium tracking-wide">Nail Artist & Coach Individuel</p>
+            <h1 className="font-knife text-4xl text-stone-800 tracking-wide mt-2 mb-1" style={titleStyle}>Shelley Nails</h1>
+            <p className="font-serif italic text-lg text-stone-600 font-medium tracking-wide">Nail Artist & Coach Individuel</p>
             
             {/* --- SOCIAL HUB --- */}
             <div className="flex justify-center gap-6 pt-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
